@@ -2,7 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Season } from '../types/game';
-import { getSeasonName } from '../lib/game';
+import { getSeasonName } from '../lib/crops'; // Updated import path
 import { Calendar, Clock, Save } from 'lucide-react';
 
 interface TimeControlProps {

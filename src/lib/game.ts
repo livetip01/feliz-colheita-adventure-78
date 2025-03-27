@@ -1,11 +1,21 @@
-
 import { Crop, GameState, GameAction, PlotState, InventoryItem, Season } from '../types/game';
-import { crops, isCropUnlocked, getUnlockPrice, canPlantInSeason, seasons } from './crops';
+import { crops, isCropUnlocked, getUnlockPrice, canPlantInSeason, seasons, getSeasonName } from './crops';
 import { createInitialPlots, calculateGrowthStage, getGrowthPercentage, expandPlots } from './plots';
 import { saveGame, loadGame } from './storage';
 
 // Export crops and utilities from this file so imports don't have to change in other parts of the app
-export { crops, createInitialPlots, getGrowthPercentage, saveGame, loadGame, seasons };
+export { 
+  crops, 
+  createInitialPlots, 
+  getGrowthPercentage, 
+  saveGame, 
+  loadGame, 
+  seasons,
+  canPlantInSeason,
+  getSeasonName,
+  getUnlockPrice,
+  isCropUnlocked
+};
 
 // Initial game state - Apenas batatas desbloqueadas inicialmente
 export const initialGameState: GameState = {

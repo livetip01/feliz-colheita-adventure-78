@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Crop, Season } from '../types/game';
-import { canPlantInSeason, getSeasonName, getUnlockPrice } from '../lib/game';
+import { canPlantInSeason, getSeasonName, getUnlockPrice } from '../lib/crops'; // Updated import path
 import { Clock, Coins, Filter, HelpCircle, Lock } from 'lucide-react';
 import {
   Tooltip,

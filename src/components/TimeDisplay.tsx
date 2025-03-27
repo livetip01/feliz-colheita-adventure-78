@@ -2,7 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Season } from '../types/game';
-import { getSeasonName } from '../lib/game';
+import { getSeasonName } from '../lib/crops'; // Updated import path
 import { Calendar, Clock, Sun } from 'lucide-react';
 import { Progress } from './ui/progress';
 import {

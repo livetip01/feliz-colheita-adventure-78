@@ -2,7 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Crop, InventoryItem, Season } from '../types/game';
-import { canPlantInSeason, getSeasonName } from '../lib/game';
+import { canPlantInSeason, getSeasonName } from '../lib/crops'; // Updated import path
 import { Clock } from 'lucide-react';
 
 interface CropSelectionProps {
