@@ -23,6 +23,9 @@ const PlotGrid: React.FC<PlotGridProps> = ({
   const gridWidth = Math.max(...plots.map(p => p.position.x)) + 1;
   const gridHeight = Math.max(...plots.map(p => p.position.y)) + 1;
   
+  // Get the current time for growth calculations
+  const currentTime = Date.now();
+  
   // Criar uma grade expandida para incluir elementos decorativos ao redor
   const createExpandedGrid = () => {
     const grid = [];
@@ -49,10 +52,9 @@ const PlotGrid: React.FC<PlotGridProps> = ({
               >
                 <Plot
                   plot={plot}
-                  selected={plot.id === selectedPlotId}
-                  onSelect={() => onSelectPlot(plot.id)}
-                  onPlant={() => onPlantCrop(plot.id)}
-                  onHarvest={() => onHarvestCrop(plot.id)}
+                  isSelected={plot.id === selectedPlotId}
+                  onClick={() => onSelectPlot(plot.id)}
+                  currentTime={currentTime}
                 />
               </div>
             );
@@ -70,10 +72,14 @@ const PlotGrid: React.FC<PlotGridProps> = ({
               }}
             >
               <SimplifiedIsometricView
-                crop={null}
-                plantedAt={null}
-                growthStage="empty"
-                position={{ x, y }}
+                plot={{ 
+                  id: `deco-${x}-${y}`, 
+                  crop: null, 
+                  plantedAt: null, 
+                  growthStage: 'empty', 
+                  position: { x, y } 
+                }}
+                currentTime={currentTime}
               />
             </div>
           );

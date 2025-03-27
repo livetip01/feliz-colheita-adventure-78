@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { PlotState } from '../types/game';
 import { getGrowthPercentage } from '../lib/plots'; // Make sure this is imported correctly
