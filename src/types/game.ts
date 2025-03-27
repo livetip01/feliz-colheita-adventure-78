@@ -37,6 +37,7 @@ export interface GameState {
   playerName: string;
   saveDate?: string; // Data do último save
   unlockedCrops: string[]; // IDs das culturas desbloqueadas
+  gridSize: { rows: number, cols: number }; // Tamanho da grade de plots
 }
 
 export type GameAction = 
@@ -51,4 +52,5 @@ export type GameAction =
   | { type: 'NEXT_DAY' }
   | { type: 'LOAD_GAME'; state: GameState }
   | { type: 'SET_PLAYER_NAME'; name: string }
-  | { type: 'UNLOCK_CROP'; cropId: string };
+  | { type: 'UNLOCK_CROP'; cropId: string }
+  | { type: 'INCREASE_PLOT_SIZE' }; // Nova ação para aumentar o tamanho do lote

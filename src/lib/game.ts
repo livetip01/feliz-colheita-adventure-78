@@ -1,106 +1,11 @@
+
 import { Crop, GameState, GameAction, PlotState, InventoryItem, Season } from '../types/game';
+import { crops, isCropUnlocked, getUnlockPrice, canPlantInSeason, seasons } from './crops';
+import { createInitialPlots, calculateGrowthStage, getGrowthPercentage, expandPlots } from './plots';
+import { saveGame, loadGame } from './storage';
 
-// Initial crops with balanced economy and season information
-export const crops: Crop[] = [
-  {
-    id: 'potato',
-    name: 'Batata',
-    growthTime: 35,
-    price: 7,
-    yield: 16, // Retorno de 228% do investimento
-    image: '🥔',
-    season: 'all',
-    description: 'Cresce em qualquer estação, mas produz menos.',
-    unlocked: true // A batata começa desbloqueada
-  },
-  {
-    id: 'tomato',
-    name: 'Tomate',
-    growthTime: 30, // 30 seconds for testing, would be longer in a real game
-    price: 10,
-    yield: 25, // Retorno de 250% do investimento
-    image: '🍅',
-    season: 'summer',
-    description: 'Cresce bem no calor do verão.'
-  },
-  {
-    id: 'carrot',
-    name: 'Cenoura',
-    growthTime: 20,
-    price: 5,
-    yield: 11, // Retorno de 220% do investimento
-    image: '🥕',
-    season: 'spring',
-    description: 'Cresce rápido na primavera.'
-  },
-  {
-    id: 'corn',
-    name: 'Milho',
-    growthTime: 40,
-    price: 15,
-    yield: 40, // Retorno de 267% do investimento
-    image: '🌽',
-    season: 'summer',
-    description: 'Ideal para o sol forte do verão.'
-  },
-  {
-    id: 'strawberry',
-    name: 'Morango',
-    growthTime: 25,
-    price: 20,
-    yield: 50, // Retorno de 250% do investimento
-    image: '🍓',
-    season: 'spring',
-    description: 'Floresce na primavera com clima ameno.'
-  },
-  {
-    id: 'pumpkin',
-    name: 'Abóbora',
-    growthTime: 50,
-    price: 25,
-    yield: 70, // Retorno de 280% do investimento
-    image: '🎃',
-    season: 'fall',
-    description: 'Melhor cultivada no outono.'
-  },
-  {
-    id: 'wheat',
-    name: 'Trigo',
-    growthTime: 30,
-    price: 8,
-    yield: 18, // Retorno de 225% do investimento
-    image: '🌾',
-    season: 'fall',
-    description: 'Cresce bem com as chuvas de outono.'
-  },
-  {
-    id: 'cabbage',
-    name: 'Repolho',
-    growthTime: 45,
-    price: 12,
-    yield: 30, // Retorno de 250% do investimento
-    image: '🥬',
-    season: 'winter',
-    description: 'Resiste bem ao frio do inverno.'
-  }
-];
-
-// Create initial plots in a grid pattern
-export const createInitialPlots = (rows: number, cols: number): PlotState[] => {
-  const plots: PlotState[] = [];
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      plots.push({
-        id: `plot-${x}-${y}`,
-        crop: null,
-        plantedAt: null,
-        growthStage: 'empty',
-        position: { x, y }
-      });
-    }
-  }
-  return plots;
-};
+// Export crops and utilities from this file so imports don't have to change in other parts of the app
+export { crops, createInitialPlots, getGrowthPercentage, saveGame, loadGame, seasons };
 
 // Initial game state - Apenas batatas desbloqueadas inicialmente
 export const initialGameState: GameState = {
@@ -114,81 +19,14 @@ export const initialGameState: GameState = {
   currentSeason: 'spring', // Começa na primavera
   dayCount: 1, // Começa no dia 1
   playerName: 'Fazendeiro',
-  unlockedCrops: ['potato'] // Inicialmente apenas batatas desbloqueadas
+  unlockedCrops: ['potato'], // Inicialmente apenas batatas desbloqueadas
+  gridSize: { rows: 4, cols: 4 } // Tamanho inicial da grade
 };
 
-// Check if a crop is unlocked
-export const isCropUnlocked = (cropId: string, unlockedCrops: string[]): boolean => {
-  return unlockedCrops?.includes(cropId) || false;
-};
-
-// Get the unlock price for a crop (10x the unit price)
-export const getUnlockPrice = (crop: Crop): number => {
-  return crop.price * 10;
-};
-
-// Calculate growth stage based on time elapsed
-const calculateGrowthStage = (crop: Crop, plantedAt: number, currentTime: number): 'empty' | 'growing' | 'ready' => {
-  if (!plantedAt) return 'empty';
-  
-  const elapsedTime = (currentTime - plantedAt) / 1000; // to seconds
-  if (elapsedTime >= crop.growthTime) {
-    return 'ready';
-  }
-  return 'growing';
-};
-
-// Calculate growth percentage (0-100)
-export const getGrowthPercentage = (crop: Crop, plantedAt: number, currentTime: number) => {
-  if (!plantedAt) return 0;
-  
-  const elapsedTime = (currentTime - plantedAt) / 1000; // to seconds
-  const percentage = Math.min(100, Math.floor((elapsedTime / crop.growthTime) * 100));
-  return percentage;
-};
-
-// Save game to localStorage
-export const saveGame = (state: GameState) => {
-  const gameState = {
-    ...state,
-    saveDate: new Date().toISOString()
-  };
-  localStorage.setItem('colheita-feliz-save', JSON.stringify(gameState));
-};
-
-// Load game from localStorage
-export const loadGame = (): GameState | null => {
-  const savedGame = localStorage.getItem('colheita-feliz-save');
-  if (savedGame) {
-    try {
-      const parsed = JSON.parse(savedGame);
-      // Ensure unlockedCrops exists
-      if (!parsed.unlockedCrops) {
-        parsed.unlockedCrops = ['potato'];
-      }
-      return parsed;
-    } catch (e) {
-      console.error('Error parsing saved game:', e);
-      return null;
-    }
-  }
-  return null;
-};
-
-// Check if a crop can be planted in the current season
-export const canPlantInSeason = (crop: Crop, season: Season): boolean => {
-  return crop.season === 'all' || crop.season === season;
-};
-
-// Get season name in Portuguese
-export const getSeasonName = (season: Season): string => {
-  const seasons: Record<Season, string> = {
-    spring: 'Primavera',
-    summer: 'Verão',
-    fall: 'Outono',
-    winter: 'Inverno'
-  };
-  return seasons[season];
+// Custo para aumentar o tamanho do lote (aumenta de acordo com o tamanho atual)
+export const getPlotExpansionCost = (currentSize: { rows: number, cols: number }): number => {
+  const area = currentSize.rows * currentSize.cols;
+  return Math.floor(area * 25); // 25 moedas por terreno existente
 };
 
 // Game reducer function
@@ -226,7 +64,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       // Find the plot
       const plot = state.plots.find(p => p.id === action.plotId);
       // If plot is already occupied, don't plant
-      if (plot && plot.crop) {
+      if (!plot || plot.crop) {
         return state;
       }
       
@@ -333,7 +171,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         if (!plot.crop || !plot.plantedAt) return plot;
         
         const newGrowthStage = calculateGrowthStage(
-          plot.crop, 
+          plot.crop.growthTime, 
           plot.plantedAt, 
           action.time
         );
@@ -449,7 +287,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       // Ensure unlockedCrops exists in loaded state
       return {
         ...action.state,
-        unlockedCrops: action.state.unlockedCrops || ['potato']
+        unlockedCrops: action.state.unlockedCrops || ['potato'],
+        gridSize: action.state.gridSize || { rows: 4, cols: 4 }
       };
     }
     
@@ -463,10 +302,40 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return newState;
     }
     
+    case 'INCREASE_PLOT_SIZE': {
+      // Calcular o custo com base no tamanho atual
+      const cost = getPlotExpansionCost(state.gridSize);
+      
+      // Verificar se o jogador tem moedas suficientes
+      if (state.coins < cost) {
+        return state;
+      }
+      
+      // Aumentar a grade em 1 linha e 1 coluna
+      const newRows = state.gridSize.rows + 1;
+      const newCols = state.gridSize.cols + 1;
+      
+      // Expandir os terrenos
+      const expandedPlots = expandPlots(
+        state.plots, 
+        state.gridSize.rows, 
+        state.gridSize.cols,
+        newRows,
+        newCols
+      );
+      
+      const newState = {
+        ...state,
+        plots: expandedPlots,
+        gridSize: { rows: newRows, cols: newCols },
+        coins: state.coins - cost
+      };
+      
+      saveGame(newState);
+      return newState;
+    }
+    
     default:
       return state;
   }
 };
-
-// Lista de estações em ordem
-export const seasons: Season[] = ['spring', 'summer', 'fall', 'winter'];

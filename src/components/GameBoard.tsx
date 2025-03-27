@@ -1,13 +1,15 @@
 
 import React, { useReducer, useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { Grid3X3, Plus } from 'lucide-react';
 import Header from './Header';
 import TimeDisplay from './TimeDisplay';
 import Hotbar from './Hotbar';
 import Shop from './Shop';
 import IsometricView from './IsometricView';
-import { gameReducer, initialGameState, crops, saveGame, loadGame } from '../lib/game';
+import { gameReducer, initialGameState, crops, saveGame, loadGame, getPlotExpansionCost } from '../lib/game';
 import { toast } from '../components/ui/use-toast';
+import { Button } from './ui/button';
 
 const DAY_DURATION = 120; // Duração de um dia em segundos (2 minutos)
 
@@ -181,6 +183,29 @@ const GameBoard: React.FC = () => {
       description: `Você desbloqueou ${cropToUnlock.name}. Agora você pode comprar e plantar esta cultura.`,
     });
   };
+  
+  const handleIncreasePlotSize = () => {
+    // Calcular o custo com base no tamanho atual da grade
+    const cost = getPlotExpansionCost(gameState.gridSize);
+    
+    // Verificar se o jogador tem moedas suficientes
+    if (gameState.coins < cost) {
+      toast({
+        title: "Moedas insuficientes",
+        description: `Você precisa de ${cost} moedas para aumentar seu terreno.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Aumentar o tamanho do terreno
+    dispatch({ type: 'INCREASE_PLOT_SIZE' });
+    
+    toast({
+      title: "Terreno expandido",
+      description: `Seu terreno agora é ${gameState.gridSize.rows + 1}x${gameState.gridSize.cols + 1}.`,
+    });
+  };
 
   const dayProgress = Math.min(100, Math.round((timeElapsed / DAY_DURATION) * 100));
 
@@ -190,6 +215,9 @@ const GameBoard: React.FC = () => {
     (gameState.unlockedCrops?.includes(item.crop.id) || false) && 
     (item.crop.season === 'all' || item.crop.season === gameState.currentSeason)
   );
+  
+  // Calcular o custo para expandir o terreno
+  const expansionCost = getPlotExpansionCost(gameState.gridSize);
 
   return (
     <motion.div 
@@ -206,6 +234,21 @@ const GameBoard: React.FC = () => {
           dayCount={gameState.dayCount}
           dayProgress={dayProgress}
         />
+      </div>
+      
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">
+          Terreno ({gameState.gridSize.rows}x{gameState.gridSize.cols})
+        </h2>
+        <Button 
+          onClick={handleIncreasePlotSize}
+          className="flex items-center gap-2"
+          variant="outline"
+        >
+          <Grid3X3 className="w-4 h-4" />
+          <Plus className="w-4 h-4" />
+          <span>Expandir ({expansionCost} moedas)</span>
+        </Button>
       </div>
       
       <div className="glass-panel mb-6 overflow-hidden">
