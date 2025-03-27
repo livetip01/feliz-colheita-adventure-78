@@ -1,30 +1,77 @@
 
-import React, { useReducer, useEffect, useState } from 'react';
+import React, { useReducer, useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Header from './Header';
 import PlotGrid from './PlotGrid';
 import CropSelection from './CropSelection';
 import Inventory from './Inventory';
 import Shop from './Shop';
-import TimeControl from './TimeControl';
+import TimeDisplay from './TimeDisplay';
 import { gameReducer, initialGameState, crops, saveGame, loadGame } from '../lib/game';
 import { toast } from '../components/ui/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Season } from '../types/game';
 
+const DAY_DURATION = 120; // Duração de um dia em segundos (2 minutos)
+
 const GameBoard: React.FC = () => {
   const [gameState, dispatch] = useReducer(gameReducer, initialGameState);
-  const [showLoadModal, setShowLoadModal] = useState(false);
+  const [timeElapsed, setTimeElapsed] = useState(0);
+  const gameTimeRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Check for saved game on first load
+  // Carregar o jogo salvo automaticamente
   useEffect(() => {
     const savedGame = loadGame();
     if (savedGame) {
-      setShowLoadModal(true);
+      dispatch({ type: 'LOAD_GAME', state: savedGame });
+      toast({
+        title: "Jogo carregado",
+        description: "Seu jogo foi carregado automaticamente.",
+      });
     }
   }, []);
   
-  // Update growth stages every second
+  // Iniciar o temporizador de jogo
+  useEffect(() => {
+    // Função para avançar o tempo do jogo
+    const advanceGameTime = () => {
+      setTimeElapsed(prev => {
+        const newTime = prev + 1;
+        
+        // Se completou um dia inteiro
+        if (newTime >= DAY_DURATION) {
+          // Avançar para o próximo dia
+          dispatch({ type: 'NEXT_DAY' });
+          
+          // Salvar o jogo automaticamente ao final do dia
+          saveGame(gameState);
+          
+          // Notificar o jogador
+          toast({
+            title: "Novo dia",
+            description: `Dia ${gameState.dayCount + 1}. Seu jogo foi salvo automaticamente.`,
+          });
+          
+          // Resetar o contador de tempo
+          return 0;
+        }
+        
+        return newTime;
+      });
+    };
+    
+    // Configurar o intervalo para atualizar a cada segundo
+    gameTimeRef.current = setInterval(advanceGameTime, 1000);
+    
+    // Limpar o intervalo ao desmontar o componente
+    return () => {
+      if (gameTimeRef.current) {
+        clearInterval(gameTimeRef.current);
+      }
+    };
+  }, [gameState.dayCount, gameState.currentSeason]);
+  
+  // Atualizar o crescimento das plantas a cada segundo
   useEffect(() => {
     const interval = setInterval(() => {
       dispatch({ type: 'UPDATE_GROWTH', time: Date.now() });
@@ -124,50 +171,9 @@ const GameBoard: React.FC = () => {
       description: `Você vendeu ${quantity} ${crop.name}.`,
     });
   };
-  
-  const handleNextDay = () => {
-    dispatch({ type: 'NEXT_DAY' });
-    
-    toast({
-      title: "Novo dia",
-      description: `Dia ${gameState.dayCount + 1} começou.`,
-    });
-  };
-  
-  const handleChangeSeason = (season: Season) => {
-    dispatch({ type: 'CHANGE_SEASON', season });
-    
-    toast({
-      title: "Estação alterada",
-      description: `A estação agora é ${season}.`,
-    });
-  };
-  
-  const handleSaveGame = () => {
-    saveGame(gameState);
-    
-    toast({
-      title: "Jogo salvo",
-      description: "Seu progresso foi salvo com sucesso.",
-    });
-  };
-  
-  const handleLoadGame = () => {
-    const savedGame = loadGame();
-    if (savedGame) {
-      dispatch({ type: 'LOAD_GAME', state: savedGame });
-      
-      toast({
-        title: "Jogo carregado",
-        description: "Seu jogo foi carregado com sucesso.",
-      });
-    }
-    setShowLoadModal(false);
-  };
-  
-  const handleNewGame = () => {
-    setShowLoadModal(false);
-  };
+
+  // Calcular progresso do dia atual (0-100%)
+  const dayProgress = Math.min(100, Math.round((timeElapsed / DAY_DURATION) * 100));
 
   return (
     <motion.div 
@@ -179,12 +185,10 @@ const GameBoard: React.FC = () => {
       <Header coins={gameState.coins} playerName={gameState.playerName} />
       
       <div className="mb-4">
-        <TimeControl 
+        <TimeDisplay 
           currentSeason={gameState.currentSeason}
           dayCount={gameState.dayCount}
-          onNextDay={handleNextDay}
-          onChangeSeason={handleChangeSeason}
-          onSaveGame={handleSaveGame}
+          dayProgress={dayProgress}
         />
       </div>
       
@@ -230,34 +234,6 @@ const GameBoard: React.FC = () => {
           />
         </TabsContent>
       </Tabs>
-      
-      {showLoadModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <motion.div 
-            className="bg-white rounded-lg p-6 max-w-md w-full"
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-          >
-            <h2 className="text-xl font-bold mb-4">Jogo salvo encontrado</h2>
-            <p className="mb-6">Existe um jogo salvo. Você gostaria de carregar ou começar um novo jogo?</p>
-            
-            <div className="flex space-x-4">
-              <button 
-                className="bg-primary text-white px-4 py-2 rounded flex-1"
-                onClick={handleLoadGame}
-              >
-                Carregar jogo
-              </button>
-              <button 
-                className="bg-gray-200 text-gray-800 px-4 py-2 rounded flex-1"
-                onClick={handleNewGame}
-              >
-                Novo jogo
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </motion.div>
   );
 };

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Plot from './Plot';
-import SimplifiedIsometricView from './SimplifiedIsometricView';
+import IsometricView from './IsometricView';
 import { PlotState } from '../types/game';
 import { Button } from "@/components/ui/button";
 import { Grid, Grid3x3, LayoutGrid } from 'lucide-react';
@@ -97,7 +97,7 @@ const PlotGrid: React.FC<PlotGridProps> = ({
           </div>
         </motion.div>
       ) : (
-        <SimplifiedIsometricView
+        <IsometricView
           plots={plots}
           onSelectPlot={onSelectPlot}
         />
