@@ -1,129 +1,110 @@
 
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React from 'react';
 import Plot from './Plot';
-import IsometricView from './IsometricView';
 import { PlotState } from '../types/game';
-import { Button } from "@/components/ui/button";
-import { Grid, Grid3x3, LayoutGrid } from 'lucide-react';
-import Hotbar from './Hotbar';
+import SimplifiedIsometricView from './SimplifiedIsometricView';
 
 interface PlotGridProps {
   plots: PlotState[];
   selectedPlotId: string | null;
-  onSelectPlot: (id: string) => void;
-  onPlantCrop: (id: string) => void;
-  onHarvestCrop: (id: string) => void;
+  onSelectPlot: (plotId: string) => void;
+  onPlantCrop: (plotId: string) => void;
+  onHarvestCrop: (plotId: string) => void;
 }
 
-const PlotGrid: React.FC<PlotGridProps> = ({ 
-  plots, 
+const PlotGrid: React.FC<PlotGridProps> = ({
+  plots,
   selectedPlotId,
   onSelectPlot,
   onPlantCrop,
   onHarvestCrop
 }) => {
-  const [viewMode, setViewMode] = useState<'grid' | 'isometric'>('isometric');
+  // Obter as dimensões da grade a partir dos plots existentes
+  const gridWidth = Math.max(...plots.map(p => p.position.x)) + 1;
+  const gridHeight = Math.max(...plots.map(p => p.position.y)) + 1;
   
-  // Find max rows and columns in plots
-  const maxRow = Math.max(...plots.map(p => p.position.y));
-  const maxCol = Math.max(...plots.map(p => p.position.x));
-  
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05,
-        delayChildren: 0.2
+  // Criar uma grade expandida para incluir elementos decorativos ao redor
+  const createExpandedGrid = () => {
+    const grid = [];
+    const expansion = 3; // Adicionar 3 células extras em cada direção
+    
+    for (let y = -expansion; y < gridHeight + expansion; y++) {
+      for (let x = -expansion; x < gridWidth + expansion; x++) {
+        // Verificar se esta é uma célula de plot real
+        const isPlot = x >= 0 && x < gridWidth && y >= 0 && y < gridHeight;
+        
+        if (isPlot) {
+          // Esta é uma célula de plot real
+          const plot = plots.find(p => p.position.x === x && p.position.y === y);
+          if (plot) {
+            grid.push(
+              <div 
+                key={`plot-${x}-${y}`}
+                className="relative"
+                style={{ 
+                  gridColumn: x + expansion + 1, 
+                  gridRow: y + expansion + 1,
+                  zIndex: y + 1
+                }}
+              >
+                <Plot
+                  plot={plot}
+                  isSelected={plot.id === selectedPlotId}
+                  onSelect={() => onSelectPlot(plot.id)}
+                  onPlant={() => onPlantCrop(plot.id)}
+                  onHarvest={() => onHarvestCrop(plot.id)}
+                />
+              </div>
+            );
+          }
+        } else {
+          // Esta é uma célula decorativa ao redor
+          grid.push(
+            <div 
+              key={`deco-${x}-${y}`}
+              className="relative"
+              style={{ 
+                gridColumn: x + expansion + 1, 
+                gridRow: y + expansion + 1,
+                zIndex: y + 1
+              }}
+            >
+              <SimplifiedIsometricView
+                crop={null}
+                plantedAt={null}
+                growthStage="empty"
+                position={{ x, y }}
+              />
+            </div>
+          );
+        }
       }
     }
-  };
-  
-  const item = {
-    hidden: { y: 20, opacity: 0 },
-    show: { y: 0, opacity: 1 }
-  };
-
-  // Função para lidar com a seleção de terreno
-  const handleSelectPlot = (plotId: string) => {
-    // Obter o terreno selecionado
-    const plot = plots.find(p => p.id === plotId);
     
-    // Se o terreno estiver vazio e pronto para plantar
-    if (plot && plot.growthStage === 'empty') {
-      // Plantar automaticamente
-      onPlantCrop(plotId);
-    } 
-    // Se o terreno tem uma colheita pronta
-    else if (plot && plot.growthStage === 'ready') {
-      // Colher automaticamente
-      onHarvestCrop(plotId);
-    }
-    // Caso contrário, apenas seleciona o terreno
-    else {
-      onSelectPlot(plotId);
-    }
+    return grid;
   };
 
   return (
-    <div className="py-4 px-4">
-      <div className="flex justify-end mb-4">
-        <div className="bg-white/60 rounded-lg p-1 flex">
-          <Button
-            variant={viewMode === 'grid' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('grid')}
-            className="px-3"
-          >
-            <Grid className="h-4 w-4 mr-1" />
-            Grade
-          </Button>
-          <Button
-            variant={viewMode === 'isometric' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('isometric')}
-            className="px-3"
-          >
-            <LayoutGrid className="h-4 w-4 mr-1" />
-            Isométrico
-          </Button>
-        </div>
+    <div 
+      className="relative w-full overflow-hidden"
+      style={{ 
+        minHeight: '400px',
+        paddingBottom: '50px',
+        paddingTop: '50px'
+      }}
+    >
+      <div 
+        className="absolute left-1/2 transform -translate-x-1/2"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(10, 50px)',
+          gridTemplateRows: 'repeat(10, 50px)',
+          transform: 'rotateX(60deg) rotateZ(45deg)',
+          transformStyle: 'preserve-3d'
+        }}
+      >
+        {createExpandedGrid()}
       </div>
-      
-      {viewMode === 'grid' ? (
-        <motion.div 
-          className="py-2"
-          variants={container}
-          initial="hidden"
-          animate="show"
-        >
-          <div 
-            className="grid gap-3 mx-auto"
-            style={{ 
-              gridTemplateColumns: `repeat(${maxCol + 1}, minmax(0, 1fr))`,
-              maxWidth: `${(maxCol + 1) * 120}px`
-            }}
-          >
-            {plots.map((plot) => (
-              <motion.div key={plot.id} variants={item}>
-                <Plot
-                  plot={plot}
-                  selected={selectedPlotId === plot.id}
-                  onSelect={handleSelectPlot}
-                  onPlant={onPlantCrop}
-                  onHarvest={onHarvestCrop}
-                />
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      ) : (
-        <IsometricView
-          plots={plots}
-          onSelectPlot={handleSelectPlot}
-        />
-      )}
     </div>
   );
 };

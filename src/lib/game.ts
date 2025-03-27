@@ -194,7 +194,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         return state;
       }
       
-      // Update inventory
+      // Find the plot
+      const plot = state.plots.find(p => p.id === action.plotId);
+      // If plot is already occupied, don't plant
+      if (plot && plot.crop) {
+        return state;
+      }
+      
+      // Update inventory (fix: only decrement by 1, not 2)
       const updatedInventory = state.inventory.map(item => 
         item.crop.id === action.crop.id
           ? { ...item, quantity: item.quantity - 1 }

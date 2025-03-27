@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Crop, Season } from '../types/game';
 import { canPlantInSeason, getSeasonName } from '../lib/game';
@@ -19,7 +19,12 @@ interface ShopProps {
 }
 
 const Shop: React.FC<ShopProps> = ({ crops, currentSeason, coins, onBuyCrop }) => {
-  const [filter, setFilter] = useState<'all' | Season>('all');
+  const [filter, setFilter] = useState<'all' | Season>(currentSeason);
+  
+  // Atualizar o filtro quando a estação mudar
+  useEffect(() => {
+    setFilter(currentSeason);
+  }, [currentSeason]);
   
   const filteredCrops = filter === 'all' 
     ? crops 

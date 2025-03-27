@@ -3,11 +3,9 @@ import React, { useReducer, useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Header from './Header';
 import PlotGrid from './PlotGrid';
-import CropSelection from './CropSelection';
-import Inventory from './Inventory';
-import Shop from './Shop';
 import TimeDisplay from './TimeDisplay';
 import Hotbar from './Hotbar';
+import Shop from './Shop';
 import { gameReducer, initialGameState, crops, saveGame, loadGame } from '../lib/game';
 import { toast } from '../components/ui/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,7 +16,6 @@ const DAY_DURATION = 120; // Duração de um dia em segundos (2 minutos)
 const GameBoard: React.FC = () => {
   const [gameState, dispatch] = useReducer(gameReducer, initialGameState);
   const [timeElapsed, setTimeElapsed] = useState(0);
-  const [showFullInventory, setShowFullInventory] = useState(false);
   const gameTimeRef = useRef<NodeJS.Timeout | null>(null);
   
   // Carregar o jogo salvo automaticamente
@@ -155,25 +152,6 @@ const GameBoard: React.FC = () => {
     });
   };
 
-  const handleSellCrop = (crop: ReturnType<typeof crops.find>, quantity: number) => {
-    const inventoryItem = gameState.inventory.find(item => item.crop.id === crop.id);
-    if (!inventoryItem || inventoryItem.quantity < quantity) {
-      toast({
-        title: "Quantidade insuficiente",
-        description: "Você não tem sementes suficientes para vender.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    dispatch({ type: 'SELL_CROP', crop, quantity });
-    
-    toast({
-      title: "Venda realizada",
-      description: `Você vendeu ${quantity} ${crop.name}.`,
-    });
-  };
-
   // Calcular progresso do dia atual (0-100%)
   const dayProgress = Math.min(100, Math.round((timeElapsed / DAY_DURATION) * 100));
 
@@ -223,28 +201,12 @@ const GameBoard: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
       >
-        <Tabs defaultValue="inventory" className="mb-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="inventory">Inventário</TabsTrigger>
-            <TabsTrigger value="shop">Loja</TabsTrigger>
-          </TabsList>
-          <TabsContent value="inventory">
-            <Inventory 
-              items={gameState.inventory}
-              coins={gameState.coins}
-              onBuyCrop={handleBuyCrop}
-              onSellCrop={handleSellCrop}
-            />
-          </TabsContent>
-          <TabsContent value="shop">
-            <Shop 
-              crops={crops}
-              currentSeason={gameState.currentSeason}
-              coins={gameState.coins}
-              onBuyCrop={handleBuyCrop}
-            />
-          </TabsContent>
-        </Tabs>
+        <Shop 
+          crops={crops}
+          currentSeason={gameState.currentSeason}
+          coins={gameState.coins}
+          onBuyCrop={handleBuyCrop}
+        />
       </motion.div>
     </motion.div>
   );
