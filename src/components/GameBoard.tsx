@@ -5,7 +5,7 @@ import Header from './Header';
 import TimeDisplay from './TimeDisplay';
 import Hotbar from './Hotbar';
 import Shop from './Shop';
-import IsometricView from './IsometricView';
+import IsometricView from './IsometricView';  // Keep importing as default
 import { gameReducer, initialGameState, crops, saveGame, loadGame, getPlotExpansionCost } from '../lib/game';
 import { Button } from './ui/button';
 
@@ -268,6 +268,7 @@ const GameBoard: React.FC = () => {
           coins={gameState.coins}
           onBuyCrop={handleBuyCrop}
           unlockedCrops={gameState.unlockedCrops || []}
+          onUnlockCrop={handleUnlockCrop}
           onUnlockCrop={handleUnlockCrop}
         />
       </motion.div>
