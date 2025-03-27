@@ -6,6 +6,7 @@ import IsometricView from './IsometricView';
 import { PlotState } from '../types/game';
 import { Button } from "@/components/ui/button";
 import { Grid, Grid3x3, LayoutGrid } from 'lucide-react';
+import Hotbar from './Hotbar';
 
 interface PlotGridProps {
   plots: PlotState[];
@@ -42,6 +43,27 @@ const PlotGrid: React.FC<PlotGridProps> = ({
   const item = {
     hidden: { y: 20, opacity: 0 },
     show: { y: 0, opacity: 1 }
+  };
+
+  // Função para lidar com a seleção de terreno
+  const handleSelectPlot = (plotId: string) => {
+    // Obter o terreno selecionado
+    const plot = plots.find(p => p.id === plotId);
+    
+    // Se o terreno estiver vazio e pronto para plantar
+    if (plot && plot.growthStage === 'empty') {
+      // Plantar automaticamente
+      onPlantCrop(plotId);
+    } 
+    // Se o terreno tem uma colheita pronta
+    else if (plot && plot.growthStage === 'ready') {
+      // Colher automaticamente
+      onHarvestCrop(plotId);
+    }
+    // Caso contrário, apenas seleciona o terreno
+    else {
+      onSelectPlot(plotId);
+    }
   };
 
   return (
@@ -88,7 +110,7 @@ const PlotGrid: React.FC<PlotGridProps> = ({
                 <Plot
                   plot={plot}
                   selected={selectedPlotId === plot.id}
-                  onSelect={onSelectPlot}
+                  onSelect={handleSelectPlot}
                   onPlant={onPlantCrop}
                   onHarvest={onHarvestCrop}
                 />
@@ -99,27 +121,8 @@ const PlotGrid: React.FC<PlotGridProps> = ({
       ) : (
         <IsometricView
           plots={plots}
-          onSelectPlot={onSelectPlot}
+          onSelectPlot={handleSelectPlot}
         />
-      )}
-      
-      {selectedPlotId && (
-        <div className="flex justify-center mt-4 space-x-2">
-          <Button
-            onClick={() => onPlantCrop(selectedPlotId)}
-            variant="default"
-            size="sm"
-          >
-            Plantar
-          </Button>
-          <Button
-            onClick={() => onHarvestCrop(selectedPlotId)}
-            variant="secondary"
-            size="sm"
-          >
-            Colher
-          </Button>
-        </div>
       )}
     </div>
   );

@@ -7,6 +7,7 @@ import CropSelection from './CropSelection';
 import Inventory from './Inventory';
 import Shop from './Shop';
 import TimeDisplay from './TimeDisplay';
+import Hotbar from './Hotbar';
 import { gameReducer, initialGameState, crops, saveGame, loadGame } from '../lib/game';
 import { toast } from '../components/ui/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +18,7 @@ const DAY_DURATION = 120; // Duração de um dia em segundos (2 minutos)
 const GameBoard: React.FC = () => {
   const [gameState, dispatch] = useReducer(gameReducer, initialGameState);
   const [timeElapsed, setTimeElapsed] = useState(0);
+  const [showFullInventory, setShowFullInventory] = useState(false);
   const gameTimeRef = useRef<NodeJS.Timeout | null>(null);
   
   // Carregar o jogo salvo automaticamente
@@ -175,9 +177,15 @@ const GameBoard: React.FC = () => {
   // Calcular progresso do dia atual (0-100%)
   const dayProgress = Math.min(100, Math.round((timeElapsed / DAY_DURATION) * 100));
 
+  // Filtrar itens de inventário por estação atual para o hotbar
+  const hotbarItems = gameState.inventory.filter(item => 
+    item.quantity > 0 && 
+    (item.crop.season === 'all' || item.crop.season === gameState.currentSeason)
+  );
+
   return (
     <motion.div 
-      className="max-w-4xl mx-auto px-4 py-6"
+      className="max-w-4xl mx-auto px-4 py-6 relative"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
@@ -192,16 +200,6 @@ const GameBoard: React.FC = () => {
         />
       </div>
       
-      <div className="mb-6">
-        <CropSelection 
-          inventory={gameState.inventory}
-          selectedCropId={gameState.selectedCrop?.id || null}
-          onSelectCrop={handleSelectCrop}
-          onBuyCrop={handleBuyCrop}
-          currentSeason={gameState.currentSeason}
-        />
-      </div>
-      
       <div className="glass-panel mb-6 overflow-hidden">
         <PlotGrid 
           plots={gameState.plots}
@@ -212,28 +210,42 @@ const GameBoard: React.FC = () => {
         />
       </div>
       
-      <Tabs defaultValue="inventory" className="mb-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="inventory">Inventário</TabsTrigger>
-          <TabsTrigger value="shop">Loja</TabsTrigger>
-        </TabsList>
-        <TabsContent value="inventory">
-          <Inventory 
-            items={gameState.inventory}
-            coins={gameState.coins}
-            onBuyCrop={handleBuyCrop}
-            onSellCrop={handleSellCrop}
-          />
-        </TabsContent>
-        <TabsContent value="shop">
-          <Shop 
-            crops={crops}
-            currentSeason={gameState.currentSeason}
-            coins={gameState.coins}
-            onBuyCrop={handleBuyCrop}
-          />
-        </TabsContent>
-      </Tabs>
+      {/* Hotbar do inventário no jogo */}
+      <Hotbar 
+        items={hotbarItems}
+        selectedCropId={gameState.selectedCrop?.id || null}
+        onSelectCrop={handleSelectCrop}
+      />
+      
+      <motion.div 
+        className="mt-12"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+      >
+        <Tabs defaultValue="inventory" className="mb-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="inventory">Inventário</TabsTrigger>
+            <TabsTrigger value="shop">Loja</TabsTrigger>
+          </TabsList>
+          <TabsContent value="inventory">
+            <Inventory 
+              items={gameState.inventory}
+              coins={gameState.coins}
+              onBuyCrop={handleBuyCrop}
+              onSellCrop={handleSellCrop}
+            />
+          </TabsContent>
+          <TabsContent value="shop">
+            <Shop 
+              crops={crops}
+              currentSeason={gameState.currentSeason}
+              coins={gameState.coins}
+              onBuyCrop={handleBuyCrop}
+            />
+          </TabsContent>
+        </Tabs>
+      </motion.div>
     </motion.div>
   );
 };

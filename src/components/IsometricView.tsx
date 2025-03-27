@@ -37,26 +37,33 @@ const Ground = ({ size }: { size: [number, number] }) => {
 // Componente para decorações (flores, pedras, etc)
 const Decorations = ({ size }: { size: [number, number] }) => {
   const [width, height] = size;
-  const items = [];
+  const [decorations, setDecorations] = useState<JSX.Element[]>([]);
   
-  // Posicionar algumas flores aleatórias em volta do terreno
-  for (let i = 0; i < 15; i++) {
-    const x = (Math.random() - 0.5) * (width + 2);
-    const z = (Math.random() - 0.5) * (height + 2);
+  // Gerar decorações uma única vez na montagem
+  useEffect(() => {
+    const items: JSX.Element[] = [];
     
-    // Apenas colocar decorações fora da área de plantio
-    if (Math.abs(x) > width/2 - 1 || Math.abs(z) > height/2 - 1) {
-      items.push(
-        <FlowerDecoration 
-          key={`flower-${i}`}
-          position={[x, 0, z]} 
-          type={Math.floor(Math.random() * 3)}
-        />
-      );
+    // Posicionar algumas flores aleatórias em volta do terreno
+    for (let i = 0; i < 15; i++) {
+      const x = (Math.random() - 0.5) * (width + 2);
+      const z = (Math.random() - 0.5) * (height + 2);
+      
+      // Apenas colocar decorações fora da área de plantio
+      if (Math.abs(x) > width/2 - 1 || Math.abs(z) > height/2 - 1) {
+        items.push(
+          <FlowerDecoration 
+            key={`flower-${i}`}
+            position={[x, 0, z]} 
+            type={Math.floor(Math.random() * 3)}
+          />
+        );
+      }
     }
-  }
+    
+    setDecorations(items);
+  }, [width, height]);
   
-  return <>{items}</>;
+  return <>{decorations}</>;
 };
 
 // Decoração de flor simples
