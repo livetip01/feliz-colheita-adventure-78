@@ -1,14 +1,13 @@
+
 import React, { useReducer, useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Header from './Header';
-import PlotGrid from './PlotGrid';
 import TimeDisplay from './TimeDisplay';
 import Hotbar from './Hotbar';
 import Shop from './Shop';
 import IsometricView from './IsometricView';
 import { gameReducer, initialGameState, crops, saveGame, loadGame } from '../lib/game';
 import { toast } from '../components/ui/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const DAY_DURATION = 120; // Duração de um dia em segundos (2 minutos)
 
@@ -16,7 +15,6 @@ const GameBoard: React.FC = () => {
   const [gameState, dispatch] = useReducer(gameReducer, initialGameState);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const gameTimeRef = useRef<NodeJS.Timeout | null>(null);
-  const [viewMode, setViewMode] = useState<'2d' | '3d'>('3d');
 
   useEffect(() => {
     const savedGame = loadGame();
@@ -94,6 +92,16 @@ const GameBoard: React.FC = () => {
       return;
     }
     
+    // Verificar se a cultura está desbloqueada
+    if (!gameState.unlockedCrops.includes(gameState.selectedCrop.id)) {
+      toast({
+        title: "Cultura bloqueada",
+        description: "Você precisa desbloquear esta cultura na loja antes de plantá-la.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     dispatch({ 
       type: 'PLANT_CROP', 
       plotId, 
@@ -120,6 +128,16 @@ const GameBoard: React.FC = () => {
   };
 
   const handleBuyCrop = (crop: ReturnType<typeof crops.find>, quantity: number) => {
+    // Verificar se a cultura está desbloqueada
+    if (!gameState.unlockedCrops.includes(crop.id)) {
+      toast({
+        title: "Cultura bloqueada",
+        description: "Você precisa desbloquear esta cultura antes de comprá-la.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (gameState.coins < crop.price * quantity) {
       toast({
         title: "Moedas insuficientes",
@@ -137,10 +155,38 @@ const GameBoard: React.FC = () => {
     });
   };
 
+  const handleUnlockCrop = (cropId: string) => {
+    // Encontrar a cultura a ser desbloqueada
+    const cropToUnlock = crops.find(crop => crop.id === cropId);
+    if (!cropToUnlock) return;
+    
+    // Calcular o preço de desbloqueio (10x o preço unitário)
+    const unlockPrice = cropToUnlock.price * 10;
+    
+    // Verificar se o jogador tem moedas suficientes
+    if (gameState.coins < unlockPrice) {
+      toast({
+        title: "Moedas insuficientes",
+        description: "Você não tem moedas suficientes para desbloquear esta cultura.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Desbloquear a cultura
+    dispatch({ type: 'UNLOCK_CROP', cropId });
+    
+    toast({
+      title: "Cultura desbloqueada",
+      description: `Você desbloqueou ${cropToUnlock.name}. Agora você pode comprar e plantar esta cultura.`,
+    });
+  };
+
   const dayProgress = Math.min(100, Math.round((timeElapsed / DAY_DURATION) * 100));
 
   const hotbarItems = gameState.inventory.filter(item => 
     item.quantity > 0 && 
+    gameState.unlockedCrops.includes(item.crop.id) && 
     (item.crop.season === 'all' || item.crop.season === gameState.currentSeason)
   );
 
@@ -162,27 +208,12 @@ const GameBoard: React.FC = () => {
       </div>
       
       <div className="glass-panel mb-6 overflow-hidden">
-        <Tabs defaultValue={viewMode} onValueChange={(value) => setViewMode(value as '2d' | '3d')} className="mb-2">
-          <TabsList className="grid w-32 grid-cols-2">
-            <TabsTrigger value="2d">2D</TabsTrigger>
-            <TabsTrigger value="3d">3D</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        
-        {viewMode === '3d' ? (
-          <IsometricView 
-            plots={gameState.plots}
-            onSelectPlot={handleSelectPlot}
-          />
-        ) : (
-          <PlotGrid 
-            plots={gameState.plots}
-            selectedPlotId={gameState.selectedPlot}
-            onSelectPlot={handleSelectPlot}
-            onPlantCrop={handlePlantCrop}
-            onHarvestCrop={handleHarvestCrop}
-          />
-        )}
+        <IsometricView 
+          plots={gameState.plots}
+          onSelectPlot={handleSelectPlot}
+          onPlantCrop={handlePlantCrop}
+          onHarvestCrop={handleHarvestCrop}
+        />
       </div>
       
       <Hotbar 
@@ -202,6 +233,8 @@ const GameBoard: React.FC = () => {
           currentSeason={gameState.currentSeason}
           coins={gameState.coins}
           onBuyCrop={handleBuyCrop}
+          unlockedCrops={gameState.unlockedCrops}
+          onUnlockCrop={handleUnlockCrop}
         />
       </motion.div>
     </motion.div>

@@ -8,6 +8,7 @@ export interface Crop {
   image: string;
   season: Season | 'all'; // Em qual estação pode ser plantada
   description?: string;
+  unlocked?: boolean; // Indica se o cultivo está desbloqueado
 }
 
 export type Season = 'spring' | 'summer' | 'fall' | 'winter';
@@ -35,6 +36,7 @@ export interface GameState {
   dayCount: number; // Para controlar a passagem do tempo
   playerName: string;
   saveDate?: string; // Data do último save
+  unlockedCrops: string[]; // IDs das culturas desbloqueadas
 }
 
 export type GameAction = 
@@ -48,4 +50,5 @@ export type GameAction =
   | { type: 'CHANGE_SEASON'; season: Season }
   | { type: 'NEXT_DAY' }
   | { type: 'LOAD_GAME'; state: GameState }
-  | { type: 'SET_PLAYER_NAME'; name: string };
+  | { type: 'SET_PLAYER_NAME'; name: string }
+  | { type: 'UNLOCK_CROP'; cropId: string };

@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Crop, Season } from '../types/game';
-import { canPlantInSeason, getSeasonName } from '../lib/game';
-import { Clock, Coins, Filter, HelpCircle } from 'lucide-react';
+import { canPlantInSeason, getSeasonName, getUnlockPrice } from '../lib/game';
+import { Clock, Coins, Filter, HelpCircle, Lock } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -16,15 +16,19 @@ interface ShopProps {
   currentSeason: Season;
   coins: number;
   onBuyCrop: (crop: Crop, quantity: number) => void;
+  unlockedCrops: string[];
+  onUnlockCrop: (cropId: string) => void;
 }
 
-const Shop: React.FC<ShopProps> = ({ crops, currentSeason, coins, onBuyCrop }) => {
+const Shop: React.FC<ShopProps> = ({ 
+  crops, 
+  currentSeason, 
+  coins, 
+  onBuyCrop,
+  unlockedCrops,
+  onUnlockCrop
+}) => {
   const [filter, setFilter] = useState<'all' | Season>(currentSeason);
-  
-  // Atualizar o filtro quando a estação mudar
-  useEffect(() => {
-    setFilter(currentSeason);
-  }, [currentSeason]);
   
   const filteredCrops = filter === 'all' 
     ? crops 
@@ -52,6 +56,8 @@ const Shop: React.FC<ShopProps> = ({ crops, currentSeason, coins, onBuyCrop }) =
     const remainingSeconds = seconds % 60;
     return `${minutes}m ${remainingSeconds}s`;
   };
+
+  const isCropUnlocked = (cropId: string) => unlockedCrops.includes(cropId);
 
   return (
     <motion.div 
@@ -97,19 +103,22 @@ const Shop: React.FC<ShopProps> = ({ crops, currentSeason, coins, onBuyCrop }) =
       >
         {filteredCrops.map((crop) => {
           const canPlant = canPlantInSeason(crop, currentSeason);
+          const isUnlocked = isCropUnlocked(crop.id);
+          const unlockPrice = getUnlockPrice(crop);
+          const canUnlock = coins >= unlockPrice;
           const affordable = coins >= crop.price;
           
           return (
             <motion.div 
               key={crop.id}
               className={`border rounded-lg p-4 ${
-                canPlant ? 'bg-white/80' : 'bg-gray-100/80'
-              } ${affordable ? '' : 'opacity-70'}`}
+                isUnlocked && canPlant ? 'bg-white/80' : 'bg-gray-100/80'
+              } ${!isUnlocked ? 'border-dashed border-gray-400' : ''}`}
               variants={item}
             >
               <div className="flex justify-between items-start">
                 <div className="flex items-center space-x-3">
-                  <span className="text-3xl">{crop.image}</span>
+                  <span className="text-3xl">{isUnlocked ? crop.image : '🔒'}</span>
                   <div>
                     <h3 className="font-medium">{crop.name}</h3>
                     <div className="flex items-center mt-1 text-sm text-muted-foreground">
@@ -141,39 +150,65 @@ const Shop: React.FC<ShopProps> = ({ crops, currentSeason, coins, onBuyCrop }) =
                 </TooltipProvider>
               </div>
               
-              <div className="flex justify-between items-center mt-4">
-                <div className="flex items-center">
-                  <Coins className="h-4 w-4 text-amber-500 mr-1" />
-                  <span>{crop.price}</span>
+              {isUnlocked ? (
+                <div className="flex justify-between items-center mt-4">
+                  <div className="flex items-center">
+                    <Coins className="h-4 w-4 text-amber-500 mr-1" />
+                    <span>{crop.price}</span>
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <button
+                      className={`px-3 py-1 rounded text-sm font-medium ${
+                        affordable && canPlant
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      }`}
+                      onClick={() => affordable && canPlant && onBuyCrop(crop, 1)}
+                      disabled={!affordable || !canPlant}
+                    >
+                      Comprar 1
+                    </button>
+                    <button
+                      className={`px-3 py-1 rounded text-sm font-medium ${
+                        affordable && coins >= crop.price * 5 && canPlant
+                          ? 'bg-primary-dark text-white'
+                          : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      }`}
+                      onClick={() => affordable && coins >= crop.price * 5 && canPlant && onBuyCrop(crop, 5)}
+                      disabled={!affordable || coins < crop.price * 5 || !canPlant}
+                    >
+                      Comprar 5
+                    </button>
+                  </div>
                 </div>
-                
-                <div className="flex space-x-2">
+              ) : (
+                <div className="mt-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="flex items-center">
+                      <Lock className="h-4 w-4 text-gray-500 mr-1" />
+                      <span className="text-sm text-gray-500">Bloqueado</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Coins className="h-4 w-4 text-amber-500 mr-1" />
+                      <span>{unlockPrice}</span>
+                    </div>
+                  </div>
                   <button
-                    className={`px-3 py-1 rounded text-sm font-medium ${
-                      affordable && canPlant
-                        ? 'bg-primary text-white'
+                    className={`w-full px-3 py-2 rounded text-sm font-medium ${
+                      canUnlock
+                        ? 'bg-amber-500 text-white'
                         : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     }`}
-                    onClick={() => affordable && canPlant && onBuyCrop(crop, 1)}
-                    disabled={!affordable || !canPlant}
+                    onClick={() => canUnlock && onUnlockCrop(crop.id)}
+                    disabled={!canUnlock}
                   >
-                    Comprar 1
-                  </button>
-                  <button
-                    className={`px-3 py-1 rounded text-sm font-medium ${
-                      affordable && coins >= crop.price * 5 && canPlant
-                        ? 'bg-primary-dark text-white'
-                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    }`}
-                    onClick={() => affordable && coins >= crop.price * 5 && canPlant && onBuyCrop(crop, 5)}
-                    disabled={!affordable || coins < crop.price * 5 || !canPlant}
-                  >
-                    Comprar 5
+                    Desbloquear por {unlockPrice} moedas
                   </button>
                 </div>
-              </div>
+              )}
               
-              {!canPlant && (
+              {isUnlocked && !canPlant && (
                 <div className="mt-2 text-sm text-red-500">
                   ❌ Não pode ser plantado nesta estação
                 </div>

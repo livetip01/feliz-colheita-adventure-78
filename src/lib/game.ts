@@ -3,6 +3,17 @@ import { Crop, GameState, GameAction, PlotState, InventoryItem, Season } from '.
 // Initial crops with balanced economy and season information
 export const crops: Crop[] = [
   {
+    id: 'potato',
+    name: 'Batata',
+    growthTime: 35,
+    price: 7,
+    yield: 16, // Retorno de 228% do investimento
+    image: '🥔',
+    season: 'all',
+    description: 'Cresce em qualquer estação, mas produz menos.',
+    unlocked: true // A batata começa desbloqueada
+  },
+  {
     id: 'tomato',
     name: 'Tomate',
     growthTime: 30, // 30 seconds for testing, would be longer in a real game
@@ -63,16 +74,6 @@ export const crops: Crop[] = [
     description: 'Cresce bem com as chuvas de outono.'
   },
   {
-    id: 'potato',
-    name: 'Batata',
-    growthTime: 35,
-    price: 7,
-    yield: 16, // Retorno de 228% do investimento
-    image: '🥔',
-    season: 'all',
-    description: 'Cresce em qualquer estação, mas produz menos.'
-  },
-  {
     id: 'cabbage',
     name: 'Repolho',
     growthTime: 45,
@@ -101,16 +102,29 @@ export const createInitialPlots = (rows: number, cols: number): PlotState[] => {
   return plots;
 };
 
-// Initial game state
+// Initial game state - Apenas batatas desbloqueadas inicialmente
 export const initialGameState: GameState = {
   plots: createInitialPlots(4, 4),
-  inventory: crops.map(crop => ({ crop, quantity: 3 })), // Start with some seeds
+  inventory: crops
+    .filter(crop => crop.unlocked) // Apenas culturas desbloqueadas no inventário inicial
+    .map(crop => ({ crop, quantity: 5 })), // Start with some potato seeds
   coins: 100,
   selectedCrop: null,
   selectedPlot: null,
   currentSeason: 'spring', // Começa na primavera
   dayCount: 1, // Começa no dia 1
   playerName: 'Fazendeiro',
+  unlockedCrops: ['potato'] // Inicialmente apenas batatas desbloqueadas
+};
+
+// Check if a crop is unlocked
+export const isCropUnlocked = (cropId: string, unlockedCrops: string[]): boolean => {
+  return unlockedCrops.includes(cropId);
+};
+
+// Get the unlock price for a crop (10x the unit price)
+export const getUnlockPrice = (crop: Crop): number => {
+  return crop.price * 10;
 };
 
 // Calculate growth stage based on time elapsed
@@ -194,6 +208,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         return state;
       }
       
+      // Check if the crop is unlocked
+      if (!state.unlockedCrops.includes(action.crop.id)) {
+        return state;
+      }
+      
       // Find the plot
       const plot = state.plots.find(p => p.id === action.plotId);
       // If plot is already occupied, don't plant
@@ -225,6 +244,43 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         plots: updatedPlots,
         inventory: updatedInventory,
         selectedPlot: null // Deselect plot after planting
+      };
+      
+      saveGame(newState);
+      return newState;
+    }
+    
+    case 'UNLOCK_CROP': {
+      // Find the crop to unlock
+      const cropToUnlock = crops.find(crop => crop.id === action.cropId);
+      if (!cropToUnlock) {
+        return state;
+      }
+      
+      // Check if already unlocked
+      if (state.unlockedCrops.includes(action.cropId)) {
+        return state;
+      }
+      
+      // Calculate unlock price
+      const unlockPrice = getUnlockPrice(cropToUnlock);
+      
+      // Check if player has enough coins
+      if (state.coins < unlockPrice) {
+        return state;
+      }
+      
+      // Update inventory to include the new unlocked crop with initial quantity 0
+      const alreadyInInventory = state.inventory.some(item => item.crop.id === action.cropId);
+      const updatedInventory = alreadyInInventory 
+        ? state.inventory 
+        : [...state.inventory, { crop: cropToUnlock, quantity: 0 }];
+      
+      const newState = {
+        ...state,
+        coins: state.coins - unlockPrice,
+        unlockedCrops: [...state.unlockedCrops, action.cropId],
+        inventory: updatedInventory
       };
       
       saveGame(newState);
@@ -285,6 +341,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       const totalCost = action.crop.price * action.quantity;
       if (state.coins < totalCost) {
         return state; // Not enough coins
+      }
+      
+      // Check if the crop is unlocked
+      if (!state.unlockedCrops.includes(action.crop.id)) {
+        return state;
       }
       
       // Update inventory
