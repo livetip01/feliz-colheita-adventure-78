@@ -201,7 +201,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         return state;
       }
       
-      // Update inventory (fix: only decrement by 1, not 2)
+      // Update inventory - only decrement by 1
       const updatedInventory = state.inventory.map(item => 
         item.crop.id === action.crop.id
           ? { ...item, quantity: item.quantity - 1 }

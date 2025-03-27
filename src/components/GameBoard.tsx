@@ -1,4 +1,3 @@
-
 import React, { useReducer, useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Header from './Header';
@@ -6,10 +5,10 @@ import PlotGrid from './PlotGrid';
 import TimeDisplay from './TimeDisplay';
 import Hotbar from './Hotbar';
 import Shop from './Shop';
+import IsometricView from './IsometricView';
 import { gameReducer, initialGameState, crops, saveGame, loadGame } from '../lib/game';
 import { toast } from '../components/ui/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Season } from '../types/game';
 
 const DAY_DURATION = 120; // Duração de um dia em segundos (2 minutos)
 
@@ -17,8 +16,8 @@ const GameBoard: React.FC = () => {
   const [gameState, dispatch] = useReducer(gameReducer, initialGameState);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const gameTimeRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Carregar o jogo salvo automaticamente
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('3d');
+
   useEffect(() => {
     const savedGame = loadGame();
     if (savedGame) {
@@ -29,29 +28,19 @@ const GameBoard: React.FC = () => {
       });
     }
   }, []);
-  
-  // Iniciar o temporizador de jogo
+
   useEffect(() => {
-    // Função para avançar o tempo do jogo
     const advanceGameTime = () => {
       setTimeElapsed(prev => {
         const newTime = prev + 1;
         
-        // Se completou um dia inteiro
         if (newTime >= DAY_DURATION) {
-          // Avançar para o próximo dia
           dispatch({ type: 'NEXT_DAY' });
-          
-          // Salvar o jogo automaticamente ao final do dia
           saveGame(gameState);
-          
-          // Notificar o jogador
           toast({
             title: "Novo dia",
             description: `Dia ${gameState.dayCount + 1}. Seu jogo foi salvo automaticamente.`,
           });
-          
-          // Resetar o contador de tempo
           return 0;
         }
         
@@ -59,18 +48,14 @@ const GameBoard: React.FC = () => {
       });
     };
     
-    // Configurar o intervalo para atualizar a cada segundo
     gameTimeRef.current = setInterval(advanceGameTime, 1000);
-    
-    // Limpar o intervalo ao desmontar o componente
     return () => {
       if (gameTimeRef.current) {
         clearInterval(gameTimeRef.current);
       }
     };
   }, [gameState.dayCount, gameState.currentSeason]);
-  
-  // Atualizar o crescimento das plantas a cada segundo
+
   useEffect(() => {
     const interval = setInterval(() => {
       dispatch({ type: 'UPDATE_GROWTH', time: Date.now() });
@@ -152,10 +137,8 @@ const GameBoard: React.FC = () => {
     });
   };
 
-  // Calcular progresso do dia atual (0-100%)
   const dayProgress = Math.min(100, Math.round((timeElapsed / DAY_DURATION) * 100));
 
-  // Filtrar itens de inventário por estação atual para o hotbar
   const hotbarItems = gameState.inventory.filter(item => 
     item.quantity > 0 && 
     (item.crop.season === 'all' || item.crop.season === gameState.currentSeason)
@@ -179,16 +162,29 @@ const GameBoard: React.FC = () => {
       </div>
       
       <div className="glass-panel mb-6 overflow-hidden">
-        <PlotGrid 
-          plots={gameState.plots}
-          selectedPlotId={gameState.selectedPlot}
-          onSelectPlot={handleSelectPlot}
-          onPlantCrop={handlePlantCrop}
-          onHarvestCrop={handleHarvestCrop}
-        />
+        <Tabs defaultValue={viewMode} onValueChange={(value) => setViewMode(value as '2d' | '3d')} className="mb-2">
+          <TabsList className="grid w-32 grid-cols-2">
+            <TabsTrigger value="2d">2D</TabsTrigger>
+            <TabsTrigger value="3d">3D</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        
+        {viewMode === '3d' ? (
+          <IsometricView 
+            plots={gameState.plots}
+            onSelectPlot={handleSelectPlot}
+          />
+        ) : (
+          <PlotGrid 
+            plots={gameState.plots}
+            selectedPlotId={gameState.selectedPlot}
+            onSelectPlot={handleSelectPlot}
+            onPlantCrop={handlePlantCrop}
+            onHarvestCrop={handleHarvestCrop}
+          />
+        )}
       </div>
       
-      {/* Hotbar do inventário no jogo */}
       <Hotbar 
         items={hotbarItems}
         selectedCropId={gameState.selectedCrop?.id || null}
@@ -202,7 +198,7 @@ const GameBoard: React.FC = () => {
         transition={{ delay: 0.5 }}
       >
         <Shop 
-          crops={crops}
+          crops={crops.filter(crop => crop.season === gameState.currentSeason || crop.season === 'all')}
           currentSeason={gameState.currentSeason}
           coins={gameState.coins}
           onBuyCrop={handleBuyCrop}
