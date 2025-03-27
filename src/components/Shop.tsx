@@ -7,6 +7,7 @@ import { Clock, Coins, Filter, HelpCircle } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
@@ -113,24 +114,26 @@ const Shop: React.FC<ShopProps> = ({ crops, currentSeason, coins, onBuyCrop }) =
                   </div>
                 </div>
                 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="text-muted-foreground">
-                      <HelpCircle className="h-4 w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <div className="text-sm max-w-xs">
-                      <p>{crop.description}</p>
-                      <p className="mt-1">
-                        Estação: {crop.season === 'all' ? 'Todas' : getSeasonName(crop.season as Season)}
-                      </p>
-                      <p className="mt-1">
-                        Lucro estimado: {crop.yield - crop.price} moedas
-                      </p>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button className="text-muted-foreground">
+                        <HelpCircle className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="text-sm max-w-xs">
+                        <p>{crop.description}</p>
+                        <p className="mt-1">
+                          Estação: {crop.season === 'all' ? 'Todas' : getSeasonName(crop.season as Season)}
+                        </p>
+                        <p className="mt-1">
+                          Lucro estimado: {crop.yield - crop.price} moedas
+                        </p>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               
               <div className="flex justify-between items-center mt-4">
