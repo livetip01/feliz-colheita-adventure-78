@@ -64,7 +64,7 @@ export const initialGameState: GameState = {
 };
 
 // Calculate growth stage based on time elapsed
-const calculateGrowthStage = (crop: Crop, plantedAt: number, currentTime: number) => {
+const calculateGrowthStage = (crop: Crop, plantedAt: number, currentTime: number): 'empty' | 'growing' | 'ready' => {
   if (!plantedAt) return 'empty';
   
   const elapsedTime = (currentTime - plantedAt) / 1000; // to seconds
@@ -119,7 +119,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
               ...plot, 
               crop: action.crop, 
               plantedAt: action.time, 
-              growthStage: 'growing'
+              growthStage: 'growing' as const
             }
           : plot
       );
@@ -145,7 +145,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       // Update plots
       const updatedPlots = state.plots.map(p => 
         p.id === action.plotId
-          ? { ...p, crop: null, plantedAt: null, growthStage: 'empty' }
+          ? { ...p, crop: null, plantedAt: null, growthStage: 'empty' as const }
           : p
       );
       

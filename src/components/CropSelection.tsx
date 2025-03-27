@@ -45,37 +45,37 @@ const CropSelection: React.FC<CropSelectionProps> = ({
     >
       <h3 className="text-lg font-medium mb-3">Sementes</h3>
       <motion.div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {inventory.map((item) => (
+        {inventory.map((inventoryItem) => (
           <motion.div
-            key={item.crop.id}
+            key={inventoryItem.crop.id}
             className={`relative p-3 rounded-lg border-2 cursor-pointer transition-all
-                       ${selectedCropId === item.crop.id 
+                       ${selectedCropId === inventoryItem.crop.id 
                            ? 'border-primary bg-primary/10' 
                            : 'border-border bg-white/50 hover:bg-white/80'}`}
-            onClick={() => handleSelectCrop(item.crop)}
+            onClick={() => handleSelectCrop(inventoryItem.crop)}
             variants={item}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
             <div className="flex flex-col items-center">
-              <span className="text-3xl mb-1">{item.crop.image}</span>
-              <span className="font-medium text-sm">{item.crop.name}</span>
+              <span className="text-3xl mb-1">{inventoryItem.crop.image}</span>
+              <span className="font-medium text-sm">{inventoryItem.crop.name}</span>
               <span className="text-xs text-muted-foreground">
-                {item.quantity} disponível
+                {inventoryItem.quantity} disponível
               </span>
               
               <div className="flex items-center mt-2 text-xs">
                 <span className="text-amber-500 mr-1">💰</span>
-                <span>{item.crop.price}</span>
+                <span>{inventoryItem.crop.price}</span>
               </div>
             </div>
             
-            {item.quantity < 5 && (
+            {inventoryItem.quantity < 5 && (
               <button 
                 className="absolute top-1 right-1 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onBuyCrop(item.crop, 5);
+                  onBuyCrop(inventoryItem.crop, 5);
                 }}
               >
                 +
