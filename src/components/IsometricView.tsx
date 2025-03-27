@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, Sky, Clouds, Cloud } from '@react-three/drei';
@@ -115,7 +114,7 @@ const Mountains = ({ position = [0, 0, 0] }) => {
       mountainsArray.push(
         <mesh 
           key={`mountain-${i}`}
-          position={[x, height/2 - 2, z]} 
+          position={[x, height/2 - 2, z] as [number, number, number]} 
           castShadow
         >
           <coneGeometry args={[width, height, 6]} />
@@ -127,7 +126,7 @@ const Mountains = ({ position = [0, 0, 0] }) => {
     return mountainsArray;
   }, []);
   
-  return <group position={position}>{mountains}</group>;
+  return <group position={position as [number, number, number]}>{mountains}</group>;
 };
 
 // Distant houses
@@ -255,7 +254,7 @@ const GrassTuft = ({ position, color, scale, height = 0.05 }: {
   height: number
 }) => {
   return (
-    <mesh position={[position[0], height/2, position[2]]} scale={scale}>
+    <mesh position={position} scale={scale}>
       <boxGeometry args={[0.1, height, 0.1]} />
       <meshStandardMaterial color={color} />
     </mesh>
@@ -319,7 +318,7 @@ const Environment = ({ dayProgress }: { dayProgress: number }) => {
     const sunY = Math.max(1, elevation); // Keep sun slightly above horizon
     const sunZ = Math.cos(sunAngle) * 100;
     
-    return [sunX, sunY, sunZ];
+    return [sunX, sunY, sunZ] as [number, number, number];
   }, [timeOfDay]);
   
   // Calculate ambient light intensity based on time of day
