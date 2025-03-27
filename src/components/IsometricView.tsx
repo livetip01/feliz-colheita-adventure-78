@@ -70,9 +70,9 @@ const FlowerDecoration = ({ position, type }: { position: [number, number, numbe
         <cylinderGeometry args={[0.05, 0.05, 0.1, 8]} />
         <meshStandardMaterial color="#228B22" />
       </mesh>
-      <Html position={[0, 0.3, 0]} center>
+      <DreiHtml position={[0, 0.3, 0]} style={{ pointerEvents: 'none', transform: 'translate(-50%, -50%)' }}>
         <div className="text-xl">{emoji[type]}</div>
-      </Html>
+      </DreiHtml>
     </group>
   );
 };
@@ -148,9 +148,9 @@ const PlotMesh = ({ plot, onSelect, position }: {
           
           {/* Fruto/parte comestível da planta */}
           {plot.growthStage === 'ready' && (
-            <Html position={[0, height + 0.2, 0]} center>
+            <DreiHtml position={[0, height + 0.2, 0]} style={{ pointerEvents: 'none', transform: 'translate(-50%, -50%)' }}>
               <div className="text-2xl" style={{transform: 'scale(1.2)'}}>{plot.crop.image}</div>
-            </Html>
+            </DreiHtml>
           )}
         </>
       )}
@@ -164,37 +164,6 @@ const PlotMesh = ({ plot, onSelect, position }: {
           color="#FFFF99"
         />
       )}
-    </group>
-  );
-};
-
-// Componente para renderizar HTML dentro do canvas 3D
-const Html = ({ children, position, center }: { 
-  children: React.ReactNode; 
-  position: [number, number, number]; 
-  center?: boolean;
-}) => {
-  const ref = useRef<THREE.Group>(null);
-  
-  useFrame(({ camera }) => {
-    if (ref.current) {
-      // Faz o elemento HTML sempre olhar para a câmera
-      ref.current.quaternion.copy(camera.quaternion);
-    }
-  });
-  
-  return (
-    <group ref={ref} position={position}>
-      <DreiHtml
-        position={[0, 0, 0]} 
-        style={{ 
-          pointerEvents: 'none',
-          transform: center ? 'translate(-50%, -50%)' : 'none'
-        }}
-        distanceFactor={10}
-      >
-        {children}
-      </DreiHtml>
     </group>
   );
 };
@@ -332,3 +301,4 @@ const IsometricView: React.FC<IsometricViewProps> = ({ plots, onSelectPlot }) =>
 };
 
 export default IsometricView;
+
