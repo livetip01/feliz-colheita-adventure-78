@@ -1,7 +1,7 @@
 
 import React, { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, Html as DreiHtml } from '@react-three/drei';
 import { PlotState } from '../types/game';
 import * as THREE from 'three';
 
@@ -79,17 +79,16 @@ const Html = ({ children, position, center }: {
   
   return (
     <group ref={ref} position={position}>
-      <Html 
-        transform 
-        distanceFactor={10} 
+      <DreiHtml
         position={[0, 0, 0]} 
         style={{ 
           pointerEvents: 'none',
           transform: center ? 'translate(-50%, -50%)' : 'none'
         }}
+        distanceFactor={10}
       >
         {children}
-      </Html>
+      </DreiHtml>
     </group>
   );
 };

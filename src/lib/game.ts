@@ -1,4 +1,3 @@
-
 import { Crop, GameState, GameAction, PlotState, InventoryItem, Season } from '../types/game';
 
 // Initial crops with balanced economy and season information
@@ -344,12 +343,18 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     
     case 'NEXT_DAY': {
+      // Calculate the new season if needed
+      let newSeason = state.currentSeason;
+      if (state.dayCount % 28 === 0) {
+        const currentSeasonIndex = seasons.indexOf(state.currentSeason);
+        const nextSeasonIndex = (currentSeasonIndex + 1) % 4;
+        newSeason = seasons[nextSeasonIndex];
+      }
+      
       const newState = {
         ...state,
         dayCount: state.dayCount + 1,
-        currentSeason: state.dayCount % 28 === 0 
-          ? ((seasons.indexOf(state.currentSeason) + 1) % 4) as Season 
-          : state.currentSeason
+        currentSeason: newSeason
       };
       
       saveGame(newState);
