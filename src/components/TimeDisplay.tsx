@@ -38,8 +38,9 @@ const TimeDisplay: React.FC<TimeDisplayProps> = ({
   
   // Determinar período do dia com base no progresso
   const getDayPeriod = () => {
+    if (dayProgress < 15) return '🌃 Madrugada';
     if (dayProgress < 25) return '🌅 Manhã';
-    if (dayProgress < 50) return '☀️ Meio-dia';
+    if (dayProgress < 60) return '☀️ Meio-dia';
     if (dayProgress < 75) return '🌇 Tarde';
     return '🌙 Noite';
   };
