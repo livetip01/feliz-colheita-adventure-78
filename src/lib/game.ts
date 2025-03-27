@@ -1,3 +1,4 @@
+
 import { Crop, GameState, GameAction, PlotState, InventoryItem, Season } from '../types/game';
 import { crops, isCropUnlocked, getUnlockPrice, canPlantInSeason, seasons, getSeasonName } from './crops';
 import { createInitialPlots, calculateGrowthStage, getGrowthPercentage, expandPlots } from './plots';
@@ -73,10 +74,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       
       // Find the plot
       const plot = state.plots.find(p => p.id === action.plotId);
-      // If plot is already occupied, don't plant
+      // If plot is already occupied or doesn't exist, don't plant
       if (!plot || plot.crop) {
+        console.log("Plot already occupied or not found:", plot);
         return state;
       }
+      
+      // Debug log to help identify issues
+      console.log("Planting crop:", action.crop.name, "in plot:", action.plotId);
       
       // Update inventory - only decrement by 1
       const updatedInventory = state.inventory.map(item => 
@@ -86,15 +91,15 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       );
       
       // Update plots
-      const updatedPlots = state.plots.map(plot => 
-        plot.id === action.plotId
+      const updatedPlots = state.plots.map(p => 
+        p.id === action.plotId
           ? { 
-              ...plot, 
+              ...p, 
               crop: action.crop, 
               plantedAt: action.time, 
               growthStage: 'growing' as const
             }
-          : plot
+          : p
       );
       
       const newState = {

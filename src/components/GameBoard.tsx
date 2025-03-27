@@ -1,4 +1,3 @@
-
 import React, { useReducer, useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Grid3X3, Plus } from 'lucide-react';
@@ -99,6 +98,27 @@ const GameBoard: React.FC = () => {
       toast({
         title: "Cultura bloqueada",
         description: "Você precisa desbloquear esta cultura na loja antes de plantá-la.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Pegar o plot atual para verificação
+    const plot = gameState.plots.find(p => p.id === plotId);
+    if (!plot) {
+      toast({
+        title: "Terreno não encontrado",
+        description: "Ocorreu um erro ao encontrar o terreno.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Verificar se o terreno já tem cultura
+    if (plot.crop) {
+      toast({
+        title: "Terreno ocupado",
+        description: "Este terreno já possui uma cultura plantada.",
         variant: "destructive",
       });
       return;

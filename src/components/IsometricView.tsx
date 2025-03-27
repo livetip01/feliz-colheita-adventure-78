@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
@@ -11,26 +12,85 @@ interface IsometricViewProps {
   onHarvestCrop: (id: string) => void;
 }
 
-// Componente para o terreno base (grama)
+// Componente para o terreno base (grama melhorada)
 const Ground = ({ size }: { size: [number, number] }) => {
+  // Criar textura de grama mais rica e detalhada
+  const [width, height] = size;
+  const groundWidth = width + 6; // Expanded ground
+  const groundHeight = height + 6; // Expanded ground
+  
   return (
-    <mesh 
-      rotation={[-Math.PI / 2, 0, 0]} 
-      position={[0, -0.1, 0]} 
-      receiveShadow
-    >
-      <planeGeometry args={size} />
-      <meshStandardMaterial color="#7CFC00" />
-      {/* Textura de grama */}
-      <mesh position={[0, 0, 0.01]}>
-        <planeGeometry args={size} />
-        <meshBasicMaterial
-          color="#8FBC8F"
-          opacity={0.2}
-          transparent
+    <>
+      {/* Base layer - light green */}
+      <mesh 
+        rotation={[-Math.PI / 2, 0, 0]} 
+        position={[0, -0.1, 0]} 
+        receiveShadow
+      >
+        <planeGeometry args={[groundWidth, groundHeight]} />
+        <meshStandardMaterial color="#7CFC00" />
+      </mesh>
+      
+      {/* Second layer - texture pattern with darker green */}
+      <mesh 
+        rotation={[-Math.PI / 2, 0, 0]} 
+        position={[0, -0.09, 0]} 
+        receiveShadow
+      >
+        <planeGeometry args={[groundWidth, groundHeight]} />
+        <meshStandardMaterial 
+          color="#3A5F0B" 
+          opacity={0.3} 
+          transparent 
           depthWrite={false}
         />
       </mesh>
+      
+      {/* Random grass tufts for texture */}
+      <GrassTufts size={[groundWidth, groundHeight]} />
+    </>
+  );
+};
+
+// Component for generating random grass tufts
+const GrassTufts = ({ size }: { size: [number, number] }) => {
+  const [tufts, setTufts] = useState<JSX.Element[]>([]);
+  
+  useEffect(() => {
+    const [width, height] = size;
+    const items: JSX.Element[] = [];
+    
+    // Generate a bunch of small grass tufts across the field
+    for (let i = 0; i < 300; i++) {
+      const x = (Math.random() - 0.5) * width;
+      const z = (Math.random() - 0.5) * height;
+      
+      // Vary the grass color slightly
+      const colorVariance = Math.random() * 0.2;
+      const color = new THREE.Color(0.2 + colorVariance, 0.5 + colorVariance, 0.1);
+      
+      items.push(
+        <GrassTuft 
+          key={`tuft-${i}`}
+          position={[x, 0, z]} 
+          color={color}
+          scale={Math.random() * 0.4 + 0.2}
+        />
+      );
+    }
+    
+    setTufts(items);
+  }, [size]);
+  
+  return <>{tufts}</>;
+};
+
+// Individual grass tuft
+const GrassTuft = ({ position, color, scale }: { position: [number, number, number], color: THREE.Color, scale: number }) => {
+  return (
+    <mesh position={[position[0], position[1], position[2]]} scale={scale}>
+      <boxGeometry args={[0.1, 0.05, 0.1]} />
+      <meshStandardMaterial color={color} />
     </mesh>
   );
 };
@@ -196,7 +256,7 @@ const IsometricFarm = ({ plots, onSelectPlot, onPlantCrop, onHarvestCrop }: Isom
   // Encontrar as dimensões da fazenda
   const maxRow = Math.max(...plots.map(p => p.position.y));
   const maxCol = Math.max(...plots.map(p => p.position.x));
-  const groundSize: [number, number] = [maxCol + 6, maxRow + 6];
+  const groundSize: [number, number] = [maxCol + 10, maxRow + 10]; // Increased ground size
   
   return (
     <>
@@ -215,7 +275,7 @@ const IsometricFarm = ({ plots, onSelectPlot, onPlantCrop, onHarvestCrop }: Isom
         <meshBasicMaterial color="#87CEEB" side={THREE.BackSide} />
       </mesh>
       
-      {/* Terreno base */}
+      {/* Terreno base melhorado */}
       <Ground size={groundSize} />
       
       {/* Decorações */}

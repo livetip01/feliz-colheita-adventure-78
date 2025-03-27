@@ -1,14 +1,14 @@
 
 import { Crop, Season } from '../types/game';
 
-// Initial crops with balanced economy and season information
+// Initial crops with balanced economy, season information, and DOUBLED growth times
 export const crops: Crop[] = [
   {
     id: 'potato',
     name: 'Batata',
-    growthTime: 35,
+    growthTime: 70, // Doubled from 35
     price: 7,
-    yield: 16, // Retorno de 228% do investimento
+    yield: 16,
     image: '🥔',
     season: 'all',
     description: 'Cresce em qualquer estação, mas produz menos.',
@@ -17,9 +17,9 @@ export const crops: Crop[] = [
   {
     id: 'tomato',
     name: 'Tomate',
-    growthTime: 30, // 30 seconds for testing, would be longer in a real game
+    growthTime: 60, // Doubled from 30
     price: 10,
-    yield: 25, // Retorno de 250% do investimento
+    yield: 25,
     image: '🍅',
     season: 'summer',
     description: 'Cresce bem no calor do verão.'
@@ -27,9 +27,9 @@ export const crops: Crop[] = [
   {
     id: 'carrot',
     name: 'Cenoura',
-    growthTime: 20,
+    growthTime: 40, // Doubled from 20
     price: 5,
-    yield: 11, // Retorno de 220% do investimento
+    yield: 11,
     image: '🥕',
     season: 'spring',
     description: 'Cresce rápido na primavera.'
@@ -37,9 +37,9 @@ export const crops: Crop[] = [
   {
     id: 'corn',
     name: 'Milho',
-    growthTime: 40,
+    growthTime: 80, // Doubled from 40
     price: 15,
-    yield: 40, // Retorno de 267% do investimento
+    yield: 40,
     image: '🌽',
     season: 'summer',
     description: 'Ideal para o sol forte do verão.'
@@ -47,9 +47,9 @@ export const crops: Crop[] = [
   {
     id: 'strawberry',
     name: 'Morango',
-    growthTime: 25,
+    growthTime: 50, // Doubled from 25
     price: 20,
-    yield: 50, // Retorno de 250% do investimento
+    yield: 50,
     image: '🍓',
     season: 'spring',
     description: 'Floresce na primavera com clima ameno.'
@@ -57,9 +57,9 @@ export const crops: Crop[] = [
   {
     id: 'pumpkin',
     name: 'Abóbora',
-    growthTime: 50,
+    growthTime: 100, // Doubled from 50
     price: 25,
-    yield: 70, // Retorno de 280% do investimento
+    yield: 70,
     image: '🎃',
     season: 'fall',
     description: 'Melhor cultivada no outono.'
@@ -67,9 +67,9 @@ export const crops: Crop[] = [
   {
     id: 'wheat',
     name: 'Trigo',
-    growthTime: 30,
+    growthTime: 60, // Doubled from 30
     price: 8,
-    yield: 18, // Retorno de 225% do investimento
+    yield: 18,
     image: '🌾',
     season: 'fall',
     description: 'Cresce bem com as chuvas de outono.'
@@ -77,12 +77,93 @@ export const crops: Crop[] = [
   {
     id: 'cabbage',
     name: 'Repolho',
-    growthTime: 45,
+    growthTime: 90, // Doubled from 45
     price: 12,
-    yield: 30, // Retorno de 250% do investimento
+    yield: 30,
     image: '🥬',
     season: 'winter',
     description: 'Resiste bem ao frio do inverno.'
+  },
+  // Novas plantas adicionadas
+  {
+    id: 'watermelon',
+    name: 'Melancia',
+    growthTime: 100,
+    price: 30,
+    yield: 85,
+    image: '🍉',
+    season: 'summer',
+    description: 'Uma fruta refrescante que adora calor.'
+  },
+  {
+    id: 'eggplant',
+    name: 'Berinjela',
+    growthTime: 70,
+    price: 16,
+    yield: 42,
+    image: '🍆',
+    season: 'summer',
+    description: 'Precisa de muito sol para crescer adequadamente.'
+  },
+  {
+    id: 'grapes',
+    name: 'Uvas',
+    growthTime: 120,
+    price: 35,
+    yield: 100,
+    image: '🍇',
+    season: 'fall',
+    description: 'Crescem melhor em climas temperados do outono.'
+  },
+  {
+    id: 'broccoli',
+    name: 'Brócolis',
+    growthTime: 65,
+    price: 14,
+    yield: 38,
+    image: '🥦',
+    season: 'winter',
+    description: 'Prefere o clima mais frio do inverno.'
+  },
+  {
+    id: 'pepper',
+    name: 'Pimentão',
+    growthTime: 75,
+    price: 18,
+    yield: 48,
+    image: '🫑',
+    season: 'summer',
+    description: 'Cresce rapidamente em climas quentes.'
+  },
+  {
+    id: 'avocado',
+    name: 'Abacate',
+    growthTime: 140,
+    price: 45,
+    yield: 130,
+    image: '🥑',
+    season: 'spring',
+    description: 'Cultura de alto valor que requer paciência.'
+  },
+  {
+    id: 'onion',
+    name: 'Cebola',
+    growthTime: 55,
+    price: 12,
+    yield: 32,
+    image: '🧅',
+    season: 'spring',
+    description: 'Cresce bem abaixo do solo na primavera.'
+  },
+  {
+    id: 'garlic',
+    name: 'Alho',
+    growthTime: 60,
+    price: 15,
+    yield: 40,
+    image: '🧄',
+    season: 'fall',
+    description: 'Um tempero essencial que amadurece no outono.'
   }
 ];
 
