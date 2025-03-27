@@ -93,7 +93,7 @@ const GameBoard: React.FC = () => {
     }
     
     // Verificar se a cultura está desbloqueada
-    if (!gameState.unlockedCrops.includes(gameState.selectedCrop.id)) {
+    if (!gameState.unlockedCrops?.includes(gameState.selectedCrop.id)) {
       toast({
         title: "Cultura bloqueada",
         description: "Você precisa desbloquear esta cultura na loja antes de plantá-la.",
@@ -129,7 +129,7 @@ const GameBoard: React.FC = () => {
 
   const handleBuyCrop = (crop: ReturnType<typeof crops.find>, quantity: number) => {
     // Verificar se a cultura está desbloqueada
-    if (!gameState.unlockedCrops.includes(crop.id)) {
+    if (!gameState.unlockedCrops?.includes(crop.id)) {
       toast({
         title: "Cultura bloqueada",
         description: "Você precisa desbloquear esta cultura antes de comprá-la.",
@@ -184,9 +184,10 @@ const GameBoard: React.FC = () => {
 
   const dayProgress = Math.min(100, Math.round((timeElapsed / DAY_DURATION) * 100));
 
+  // Garanta que gameState.unlockedCrops existe antes de usar filter
   const hotbarItems = gameState.inventory.filter(item => 
     item.quantity > 0 && 
-    gameState.unlockedCrops.includes(item.crop.id) && 
+    (gameState.unlockedCrops?.includes(item.crop.id) || false) && 
     (item.crop.season === 'all' || item.crop.season === gameState.currentSeason)
   );
 
@@ -233,7 +234,7 @@ const GameBoard: React.FC = () => {
           currentSeason={gameState.currentSeason}
           coins={gameState.coins}
           onBuyCrop={handleBuyCrop}
-          unlockedCrops={gameState.unlockedCrops}
+          unlockedCrops={gameState.unlockedCrops || []}
           onUnlockCrop={handleUnlockCrop}
         />
       </motion.div>

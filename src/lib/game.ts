@@ -119,7 +119,7 @@ export const initialGameState: GameState = {
 
 // Check if a crop is unlocked
 export const isCropUnlocked = (cropId: string, unlockedCrops: string[]): boolean => {
-  return unlockedCrops.includes(cropId);
+  return unlockedCrops?.includes(cropId) || false;
 };
 
 // Get the unlock price for a crop (10x the unit price)
@@ -160,7 +160,17 @@ export const saveGame = (state: GameState) => {
 export const loadGame = (): GameState | null => {
   const savedGame = localStorage.getItem('colheita-feliz-save');
   if (savedGame) {
-    return JSON.parse(savedGame);
+    try {
+      const parsed = JSON.parse(savedGame);
+      // Ensure unlockedCrops exists
+      if (!parsed.unlockedCrops) {
+        parsed.unlockedCrops = ['potato'];
+      }
+      return parsed;
+    } catch (e) {
+      console.error('Error parsing saved game:', e);
+      return null;
+    }
   }
   return null;
 };
@@ -208,8 +218,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         return state;
       }
       
-      // Check if the crop is unlocked
-      if (!state.unlockedCrops.includes(action.crop.id)) {
+      // Check if the crop is unlocked - ensure unlockedCrops exists
+      if (!(state.unlockedCrops || []).includes(action.crop.id)) {
         return state;
       }
       
@@ -257,8 +267,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         return state;
       }
       
+      // Ensure unlockedCrops exists
+      const unlockedCrops = state.unlockedCrops || ['potato'];
+      
       // Check if already unlocked
-      if (state.unlockedCrops.includes(action.cropId)) {
+      if (unlockedCrops.includes(action.cropId)) {
         return state;
       }
       
@@ -279,7 +292,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       const newState = {
         ...state,
         coins: state.coins - unlockPrice,
-        unlockedCrops: [...state.unlockedCrops, action.cropId],
+        unlockedCrops: [...unlockedCrops, action.cropId],
         inventory: updatedInventory
       };
       
@@ -343,8 +356,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         return state; // Not enough coins
       }
       
+      // Ensure unlockedCrops exists
+      const unlockedCrops = state.unlockedCrops || ['potato'];
+      
       // Check if the crop is unlocked
-      if (!state.unlockedCrops.includes(action.crop.id)) {
+      if (!unlockedCrops.includes(action.crop.id)) {
         return state;
       }
       
@@ -430,7 +446,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     
     case 'LOAD_GAME': {
-      return action.state;
+      // Ensure unlockedCrops exists in loaded state
+      return {
+        ...action.state,
+        unlockedCrops: action.state.unlockedCrops || ['potato']
+      };
     }
     
     case 'SET_PLAYER_NAME': {
