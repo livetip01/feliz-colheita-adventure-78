@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, Sky, Clouds, Cloud } from '@react-three/drei';
@@ -772,3 +773,146 @@ const PlotMesh = ({
             castShadow
           >
             <boxGeometry args={[0.15, height, 0.15]} />
+            <meshStandardMaterial color="#228B22" />
+          </mesh>
+          
+          {/* Plant leaves - change based on growth percentage */}
+          {plot.growthStage === 'growing' && (
+            <>
+              {growthPercentage < 33 && (
+                // Small seedling: two tiny leaves
+                <mesh position={[0, height, 0]} rotation={[0, 0, 0]}>
+                  <boxGeometry args={[0.2, 0.02, 0.1]} />
+                  <meshStandardMaterial color="#32CD32" />
+                </mesh>
+              )}
+              
+              {growthPercentage >= 33 && growthPercentage < 66 && (
+                // Medium plant: four small leaves
+                <>
+                  <mesh position={[0, height, 0]} rotation={[0, Math.PI/4, 0]}>
+                    <boxGeometry args={[0.3, 0.02, 0.2]} />
+                    <meshStandardMaterial color="#32CD32" />
+                  </mesh>
+                  <mesh position={[0, height-0.1, 0]} rotation={[0, -Math.PI/4, 0]}>
+                    <boxGeometry args={[0.25, 0.02, 0.15]} />
+                    <meshStandardMaterial color="#32CD32" />
+                  </mesh>
+                </>
+              )}
+              
+              {growthPercentage >= 66 && (
+                // Almost mature plant: multiple leaves
+                <>
+                  <mesh position={[0, height, 0]} rotation={[0, Math.PI/4, 0]}>
+                    <boxGeometry args={[0.4, 0.02, 0.25]} />
+                    <meshStandardMaterial color="#32CD32" />
+                  </mesh>
+                  <mesh position={[0, height-0.15, 0]} rotation={[0, -Math.PI/4, 0]}>
+                    <boxGeometry args={[0.35, 0.02, 0.2]} />
+                    <meshStandardMaterial color="#32CD32" />
+                  </mesh>
+                  <mesh position={[0, height-0.3, 0]} rotation={[0, Math.PI/3, 0]}>
+                    <boxGeometry args={[0.3, 0.02, 0.15]} />
+                    <meshStandardMaterial color="#32CD32" />
+                  </mesh>
+                </>
+              )}
+            </>
+          )}
+          
+          {/* Mature plant */}
+          {plot.growthStage === 'ready' && (
+            <>
+              {/* Multiple leaves at different angles */}
+              <mesh position={[0, height, 0]} rotation={[0, Math.PI/4, 0]}>
+                <boxGeometry args={[0.5, 0.03, 0.3]} />
+                <meshStandardMaterial color="#32CD32" />
+              </mesh>
+              <mesh position={[0, height-0.15, 0]} rotation={[0, -Math.PI/4, 0]}>
+                <boxGeometry args={[0.45, 0.03, 0.25]} />
+                <meshStandardMaterial color="#32CD32" />
+              </mesh>
+              <mesh position={[0, height-0.3, 0]} rotation={[0, Math.PI/3, 0]}>
+                <boxGeometry args={[0.4, 0.03, 0.2]} />
+                <meshStandardMaterial color="#32CD32" />
+              </mesh>
+              
+              {/* Fruit/flower on top */}
+              <mesh position={[0, height+0.15, 0]}>
+                <sphereGeometry args={[0.12, 8, 8]} />
+                <meshStandardMaterial color={plot.crop?.color || "#FF0000"} />
+              </mesh>
+            </>
+          )}
+        </>
+      )}
+    </group>
+  );
+};
+
+// Main IsometricView component
+const IsometricView: React.FC<IsometricViewProps> = ({ 
+  plots, 
+  onSelectPlot, 
+  onPlantCrop, 
+  onHarvestCrop,
+  dayProgress = 40
+}) => {
+  const currentTime = Date.now();
+  const farmSize: [number, number] = [10, 10]; // Fixed farm size
+  
+  return (
+    <div className="h-full w-full">
+      <Canvas shadows dpr={[1, 2]} camera={{ position: [10, 10, 10], fov: 50 }}>
+        <Environment dayProgress={dayProgress} />
+        
+        {/* Ground */}
+        <Ground size={farmSize} />
+        
+        {/* Background decorations */}
+        <Mountains />
+        <DistantHouses />
+        <TreeDecorations size={farmSize} />
+        <GrassTufts farmSize={farmSize} />
+        
+        {/* Farm plots */}
+        <group position={[-farmSize[0]/2 + 0.5, 0, -farmSize[1]/2 + 0.5]}>
+          {plots.map((plot, index) => {
+            const row = Math.floor(index / 10);
+            const col = index % 10;
+            return (
+              <PlotMesh
+                key={plot.id}
+                plot={plot}
+                position={[col, 0, row]}
+                currentTime={currentTime}
+                onSelect={() => onSelectPlot(plot.id)}
+                onPlant={() => onPlantCrop(plot.id)}
+                onHarvest={() => onHarvestCrop(plot.id)}
+              />
+            );
+          })}
+        </group>
+        
+        {/* Fence around farm */}
+        <Fence 
+          width={farmSize[0]} 
+          height={farmSize[1]} 
+          offset={[-farmSize[0]/2, 0, -farmSize[1]/2]} 
+        />
+        
+        {/* Controls */}
+        <OrbitControls
+          minPolarAngle={0}
+          maxPolarAngle={Math.PI / 2.5}
+          minDistance={5}
+          maxDistance={20}
+          enablePan={false}
+        />
+      </Canvas>
+    </div>
+  );
+};
+
+export default IsometricView;
