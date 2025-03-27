@@ -1,7 +1,7 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Html as DreiHtml } from '@react-three/drei';
+import { OrbitControls, Html } from '@react-three/drei';
 import { PlotState } from '../types/game';
 import * as THREE from 'three';
 
@@ -70,9 +70,9 @@ const FlowerDecoration = ({ position, type }: { position: [number, number, numbe
         <cylinderGeometry args={[0.05, 0.05, 0.1, 8]} />
         <meshStandardMaterial color="#228B22" />
       </mesh>
-      <DreiHtml position={[0, 0.3, 0]} style={{ pointerEvents: 'none', transform: 'translate(-50%, -50%)' }}>
+      <Html position={[0, 0.3, 0]} style={{ pointerEvents: 'none', transform: 'translate(-50%, -50%)' }}>
         <div className="text-xl">{emoji[type]}</div>
-      </DreiHtml>
+      </Html>
     </group>
   );
 };
@@ -148,9 +148,9 @@ const PlotMesh = ({ plot, onSelect, position }: {
           
           {/* Fruto/parte comestível da planta */}
           {plot.growthStage === 'ready' && (
-            <DreiHtml position={[0, height + 0.2, 0]} style={{ pointerEvents: 'none', transform: 'translate(-50%, -50%)' }}>
+            <Html position={[0, height + 0.2, 0]} style={{ pointerEvents: 'none', transform: 'translate(-50%, -50%)' }}>
               <div className="text-2xl" style={{transform: 'scale(1.2)'}}>{plot.crop.image}</div>
-            </DreiHtml>
+            </Html>
           )}
         </>
       )}
@@ -260,7 +260,7 @@ const Fence = ({ width, height, offset }: { width: number, height: number, offse
 };
 
 // Componente para um poste da cerca
-const FencePost = ({ position, rotation }: { position: [number, number, number], rotation?: [number, number, number] }) => {
+const FencePost = ({ position, rotation = [0, 0, 0] }: { position: [number, number, number], rotation?: [number, number, number] }) => {
   return (
     <group position={position} rotation={rotation}>
       {/* Poste vertical */}
@@ -285,7 +285,11 @@ const FencePost = ({ position, rotation }: { position: [number, number, number],
 const IsometricView: React.FC<IsometricViewProps> = ({ plots, onSelectPlot }) => {
   return (
     <div className="w-full h-[500px] rounded-lg overflow-hidden">
-      <Canvas shadows camera={{ position: [6, 7, 6], fov: 45 }}>
+      <Canvas 
+        shadows 
+        camera={{ position: [6, 7, 6], fov: 45 }}
+        gl={{ antialias: true, alpha: true }}
+      >
         <OrbitControls 
           enableZoom={true} 
           enablePan={true}
@@ -301,4 +305,3 @@ const IsometricView: React.FC<IsometricViewProps> = ({ plots, onSelectPlot }) =>
 };
 
 export default IsometricView;
-
