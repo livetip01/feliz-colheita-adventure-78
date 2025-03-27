@@ -1,7 +1,7 @@
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Html } from '@react-three/drei';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, Html, Sky, Clouds, Cloud } from '@react-three/drei';
 import { PlotState } from '../types/game';
 import * as THREE from 'three';
 
@@ -61,12 +61,12 @@ const Tree = ({ position, scale = 1, type = 0 }) => {
   );
 };
 
-// Componente para o terreno base (grama melhorada)
+// Component for base terrain (enhanced grass)
 const Ground = ({ size }: { size: [number, number] }) => {
-  // Criar textura de grama mais rica e detalhada
+  // Create richer and more detailed grass texture
   const [width, height] = size;
-  const groundWidth = width + 6; // Expanded ground
-  const groundHeight = height + 6; // Expanded ground
+  const groundWidth = width + 20; // Much more expanded ground
+  const groundHeight = height + 20; // Much more expanded ground
   
   return (
     <>
@@ -94,35 +94,141 @@ const Ground = ({ size }: { size: [number, number] }) => {
           depthWrite={false}
         />
       </mesh>
-      
-      {/* Fixed grass tufts for texture */}
-      <GrassTufts size={[groundWidth, groundHeight]} />
     </>
   );
 };
 
-// Component for generating fixed grass tufts
-const GrassTufts = ({ size }: { size: [number, number] }) => {
+// Mountains in the background
+const Mountains = ({ position = [0, 0, 0] }) => {
+  const mountains = useMemo(() => {
+    const mountainsArray = [];
+    
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      const distance = 50 + Math.sin(i * 5) * 10;
+      const height = 12 + Math.cos(i * 3) * 5;
+      const width = 8 + Math.sin(i * 7) * 4;
+      
+      const x = Math.sin(angle) * distance;
+      const z = Math.cos(angle) * distance;
+      
+      mountainsArray.push(
+        <mesh 
+          key={`mountain-${i}`}
+          position={[x, height/2 - 2, z]} 
+          castShadow
+        >
+          <coneGeometry args={[width, height, 6]} />
+          <meshStandardMaterial color="#6B8E23" />
+        </mesh>
+      );
+    }
+    
+    return mountainsArray;
+  }, []);
+  
+  return <group position={position}>{mountains}</group>;
+};
+
+// Distant houses
+const DistantHouses = () => {
+  const houses = useMemo(() => {
+    const housesArray = [];
+    
+    for (let i = 0; i < 15; i++) {
+      const angle = (i / 15) * Math.PI * 2;
+      const distance = 40 + Math.sin(i * 13) * 8;
+      
+      const x = Math.sin(angle) * distance;
+      const z = Math.cos(angle) * distance;
+      
+      // House type varies
+      const houseType = i % 3;
+      const houseScale = 1 + Math.sin(i * 7) * 0.3;
+      
+      housesArray.push(
+        <House 
+          key={`house-${i}`}
+          position={[x, 0, z]} 
+          scale={houseScale}
+          type={houseType}
+        />
+      );
+    }
+    
+    return housesArray;
+  }, []);
+  
+  return <>{houses}</>;
+};
+
+// Individual house
+const House = ({ position, scale = 1, type = 0 }) => {
+  const houseColors = ['#8B4513', '#A52A2A', '#D2691E'];
+  const roofColors = ['#800000', '#8B0000', '#B22222'];
+  
+  const color = houseColors[type % houseColors.length];
+  const roofColor = roofColors[type % roofColors.length];
+  
+  return (
+    <group position={position} scale={scale}>
+      {/* House base */}
+      <mesh position={[0, 0.75, 0]} castShadow>
+        <boxGeometry args={[2, 1.5, 2]} />
+        <meshStandardMaterial color={color} />
+      </mesh>
+      
+      {/* Roof */}
+      <mesh position={[0, 1.75, 0]} castShadow>
+        <coneGeometry args={[1.5, 1, 4]} />
+        <meshStandardMaterial color={roofColor} />
+      </mesh>
+    </group>
+  );
+};
+
+// Component for grass tufts scattered around but outside the farm
+const GrassTufts = ({ farmSize, avoidCenter = true }: { farmSize: [number, number], avoidCenter?: boolean }) => {
   // Use useMemo to create a stable set of grass tufts
   const tufts = useMemo(() => {
-    const [width, height] = size;
+    const [width, height] = farmSize;
     const items = [];
     
     // Generate a deterministic seed
     const seed = (width * 1000 + height);
     
-    // Generate a bunch of small grass tufts across the field
-    for (let i = 0; i < 300; i++) {
+    // Determine farm boundaries to avoid
+    const farmBoundary = {
+      minX: -(width/2 + 0.5),
+      maxX: (width/2 + 0.5),
+      minZ: -(height/2 + 0.5),
+      maxZ: (height/2 + 0.5)
+    };
+    
+    // Generate grass tufts across the field, but outside the farm boundaries
+    for (let i = 0; i < 800; i++) {
       // Use deterministic pseudo-random values
-      const pseudoRandom1 = Math.sin(seed * i) * 0.5 + 0.5;
-      const pseudoRandom2 = Math.cos(seed * i) * 0.5 + 0.5;
+      const pseudoRandom1 = Math.sin(seed * i * 0.57) * 0.5 + 0.5;
+      const pseudoRandom2 = Math.cos(seed * i * 0.37) * 0.5 + 0.5;
       
-      const x = (pseudoRandom1 - 0.5) * width;
-      const z = (pseudoRandom2 - 0.5) * height;
+      // Use a wider range for placement
+      const range = 40; // much larger range
+      const x = (pseudoRandom1 - 0.5) * range;
+      const z = (pseudoRandom2 - 0.5) * range;
+      
+      // Skip if this grass tuft would be inside the farm
+      if (avoidCenter &&
+          x >= farmBoundary.minX && x <= farmBoundary.maxX &&
+          z >= farmBoundary.minZ && z <= farmBoundary.maxZ) {
+        continue;
+      }
       
       // Vary the grass color slightly but deterministically
       const colorVariance = (pseudoRandom1 * pseudoRandom2) * 0.2;
       const color = new THREE.Color(0.2 + colorVariance, 0.5 + colorVariance, 0.1);
+      
+      // Make grass tufts taller
+      const height = pseudoRandom1 * 0.3 + 0.1;
       
       items.push(
         <GrassTuft 
@@ -130,21 +236,27 @@ const GrassTufts = ({ size }: { size: [number, number] }) => {
           position={[x, 0, z]} 
           color={color}
           scale={pseudoRandom1 * 0.4 + 0.2}
+          height={height}
         />
       );
     }
     
     return items;
-  }, [size]); // Only depends on size
+  }, [farmSize, avoidCenter]); 
   
   return <>{tufts}</>;
 };
 
-// Individual grass tuft
-const GrassTuft = ({ position, color, scale }: { position: [number, number, number], color: THREE.Color, scale: number }) => {
+// Individual grass tuft - improved version
+const GrassTuft = ({ position, color, scale, height = 0.05 }: { 
+  position: [number, number, number], 
+  color: THREE.Color, 
+  scale: number,
+  height: number
+}) => {
   return (
-    <mesh position={[position[0], position[1], position[2]]} scale={scale}>
-      <boxGeometry args={[0.1, 0.05, 0.1]} />
+    <mesh position={[position[0], height/2, position[2]]} scale={scale}>
+      <boxGeometry args={[0.1, height, 0.1]} />
       <meshStandardMaterial color={color} />
     </mesh>
   );
@@ -160,31 +272,17 @@ const TreeDecorations = ({ size }: { size: [number, number] }) => {
     const seedValue = width * 137 + height * 547;
     
     // Add trees in strategic locations
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 40; i++) { // More trees
       // Deterministic positions based on a seed
       const seed = (seedValue + i * 123) % 1000 / 1000;
       const seed2 = (seedValue + i * 456) % 1000 / 1000;
       
-      // Position trees around the perimeter with some variation
-      let x, z;
+      // Position trees in a wider area around the farm
+      const angle = (i / 40) * Math.PI * 2;
+      const distance = 15 + seed * 25; // Varied distance 15-40 units away
       
-      if (i % 4 === 0) {
-        // Top edge
-        x = (seed * 2 - 1) * (width/2 + 1);
-        z = -height/2 - 1 - seed2 * 3;
-      } else if (i % 4 === 1) {
-        // Right edge
-        x = width/2 + 1 + seed2 * 3;
-        z = (seed * 2 - 1) * (height/2 + 1);
-      } else if (i % 4 === 2) {
-        // Bottom edge
-        x = (seed * 2 - 1) * (width/2 + 1);
-        z = height/2 + 1 + seed2 * 3;
-      } else {
-        // Left edge
-        x = -width/2 - 1 - seed2 * 3;
-        z = (seed * 2 - 1) * (height/2 + 1);
-      }
+      const x = Math.sin(angle) * distance;
+      const z = Math.cos(angle) * distance;
       
       // Vary tree type, scale and exact position slightly
       const treeType = Math.floor(seed * 3);
@@ -206,234 +304,81 @@ const TreeDecorations = ({ size }: { size: [number, number] }) => {
   return <>{trees}</>;
 };
 
-// Componente para decorações (flores, pedras, etc)
-const Decorations = ({ size }: { size: [number, number] }) => {
-  const [width, height] = size;
+// Environment component for day/night cycle
+const Environment = ({ dayProgress }: { dayProgress: number }) => {
+  // Map day progress (0-100) to time of day (0-24 hours)
+  // Higher values = later in the day
+  const timeOfDay = (dayProgress / 100) * 24;
   
-  // Generate decorations deterministically with useMemo
-  const decorations = useMemo(() => {
-    const items = [];
-    const seedValue = width * 73 + height * 31;
+  // Calculate sun position based on time of day
+  // At noon (12h) sun is at zenith, at night (0h, 24h) sun is below horizon
+  const sunPosition = useMemo(() => {
+    const sunAngle = ((timeOfDay - 12) / 12) * Math.PI;
+    const elevation = Math.cos(sunAngle) * 60;
+    const sunX = Math.sin(sunAngle) * 100;
+    const sunY = Math.max(1, elevation); // Keep sun slightly above horizon
+    const sunZ = Math.cos(sunAngle) * 100;
     
-    // Position some flowers around the terrain
-    for (let i = 0; i < 15; i++) {
-      // Deterministic positions based on a seed
-      const seed = (seedValue + i * 237) % 1000 / 1000;
-      const seed2 = (seedValue + i * 721) % 1000 / 1000;
-      
-      const x = (seed * 2 - 1) * (width/2 + 1);
-      const z = (seed2 * 2 - 1) * (height/2 + 1);
-      
-      // Only place decorations outside the planting area
-      if (Math.abs(x) > width/2 - 1 || Math.abs(z) > height/2 - 1) {
-        items.push(
-          <FlowerDecoration 
-            key={`flower-${i}`}
-            position={[x, 0, z]} 
-            type={Math.floor(seed * seed2 * 3)}
-          />
-        );
-      }
-    }
+    return [sunX, sunY, sunZ];
+  }, [timeOfDay]);
+  
+  // Calculate ambient light intensity based on time of day
+  // Brightest at noon, darkest at midnight
+  const ambientIntensity = Math.max(0.2, Math.cos((timeOfDay - 12) / 12 * Math.PI) * 0.5 + 0.3);
+  
+  // Calculate directional light intensity
+  // No direct light at night
+  const directionalIntensity = Math.max(0, Math.cos((timeOfDay - 12) / 12 * Math.PI));
+  
+  // Calculate sky color
+  const skyColor = useMemo(() => {
+    // Blue during day, dark blue at night
+    const dayFactor = Math.max(0, Math.cos((timeOfDay - 12) / 12 * Math.PI));
     
-    return items;
-  }, [width, height]);
+    const r = 0.53 * dayFactor + 0.05;
+    const g = 0.8 * dayFactor + 0.05;
+    const b = 0.92 * dayFactor + 0.1;
+    
+    return new THREE.Color(r, g, b);
+  }, [timeOfDay]);
   
-  return <>{decorations}</>;
-};
-
-// Decoração de flor simples
-const FlowerDecoration = ({ position, type }: { position: [number, number, number], type: number }) => {
-  const colors = ['#FF69B4', '#FFFF00', '#FFFFFF'];
-  const emoji = ['🌸', '🌼', '🌺'];
+  // Calculate fog color and density
+  const fogColor = useMemo(() => {
+    const dayFactor = Math.max(0, Math.cos((timeOfDay - 12) / 12 * Math.PI));
+    
+    const r = 0.75 * dayFactor + 0.1;
+    const g = 0.8 * dayFactor + 0.1;
+    const b = 0.85 * dayFactor + 0.15;
+    
+    return new THREE.Color(r, g, b);
+  }, [timeOfDay]);
   
-  return (
-    <group position={position}>
-      <mesh position={[0, 0.1, 0]}>
-        <cylinderGeometry args={[0.05, 0.05, 0.1, 8]} />
-        <meshStandardMaterial color="#228B22" />
-      </mesh>
-      <Html position={[0, 0.3, 0]} style={{ pointerEvents: 'none', transform: 'translate(-50%, -50%)' }}>
-        <div className="text-xl">{emoji[type]}</div>
-      </Html>
-    </group>
-  );
-};
-
-const PlotMesh = ({ 
-  plot, 
-  onSelect,
-  onPlant,
-  onHarvest,
-  position 
-}: { 
-  plot: PlotState; 
-  onSelect: () => void;
-  onPlant: () => void;
-  onHarvest: () => void;
-  position: [number, number, number];
-}) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  
-  // Cores para diferentes estágios de crescimento
-  const colors = {
-    empty: '#8B5E3C', // marrom para terra
-    growing: '#90EE90', // verde claro para plantas crescendo
-    ready: '#32CD32' // verde mais escuro para plantas prontas
-  };
-  
-  // Altura da planta baseada no estágio de crescimento
-  const height = plot.growthStage === 'empty' ? 0.1 : 
-                plot.growthStage === 'growing' ? 0.3 : 0.5;
-                
-  // Animação simples para plantas prontas para colheita
-  useFrame(({ clock }) => {
-    if (meshRef.current && plot.growthStage === 'ready') {
-      meshRef.current.position.y = height/2 + Math.sin(clock.getElapsedTime() * 2) * 0.05;
-    }
-  });
-  
-  // New simplified direct planting handler
-  const handlePlotClick = () => {
-    if (plot.growthStage === 'ready') {
-      // If crop is ready, harvest it
-      console.log("Harvesting crop from plot:", plot.id);
-      onHarvest();
-    } else if (plot.growthStage === 'empty') {
-      // If empty, plant directly
-      console.log("Planting on plot:", plot.id);
-      onPlant();
-    } else {
-      // Just select growing plots
-      onSelect();
-    }
-  };
-  
-  return (
-    <group position={position}>
-      {/* Terra lavrada */}
-      <mesh 
-        position={[0, -0.05, 0]} 
-        onClick={handlePlotClick}
-        receiveShadow
-      >
-        <boxGeometry args={[0.9, 0.1, 0.9]} />
-        <meshStandardMaterial color="#A97C50" />
-        {/* Linhas da terra lavrada */}
-        <mesh position={[0, 0.06, 0]} rotation={[0, Math.PI/4, 0]}>
-          <boxGeometry args={[0.85, 0.02, 0.85]} />
-          <meshStandardMaterial color="#8B4513" wireframe />
-        </mesh>
-      </mesh>
-      
-      {/* Planta */}
-      {plot.crop && plot.growthStage !== 'empty' && (
-        <>
-          {/* Caule da planta */}
-          <mesh
-            ref={meshRef}
-            position={[0, height/2, 0]}
-            castShadow
-          >
-            <boxGeometry args={[0.15, height, 0.15]} />
-            <meshStandardMaterial color="#228B22" />
-          </mesh>
-          
-          {/* Folhas da planta */}
-          {plot.growthStage === 'growing' && (
-            <>
-              <mesh position={[0.1, height/2, 0.1]} rotation={[0, 0, Math.PI/4]}>
-                <boxGeometry args={[0.2, 0.02, 0.1]} />
-                <meshStandardMaterial color="#32CD32" />
-              </mesh>
-              <mesh position={[-0.1, height/2 - 0.1, -0.05]} rotation={[0, 0, -Math.PI/4]}>
-                <boxGeometry args={[0.2, 0.02, 0.1]} />
-                <meshStandardMaterial color="#32CD32" />
-              </mesh>
-            </>
-          )}
-          
-          {/* Fruto/parte comestível da planta */}
-          {plot.growthStage === 'ready' && (
-            <Html position={[0, height + 0.2, 0]} style={{ pointerEvents: 'none', transform: 'translate(-50%, -50%)' }}>
-              <div className="text-2xl" style={{transform: 'scale(1.2)'}}>{plot.crop.image}</div>
-            </Html>
-          )}
-        </>
-      )}
-      
-      {/* Brilho em volta das plantas prontas */}
-      {plot.crop && plot.growthStage === 'ready' && (
-        <pointLight
-          position={[0, height + 0.5, 0]}
-          intensity={0.5}
-          distance={1.5}
-          color="#FFFF99"
-        />
-      )}
-    </group>
-  );
-};
-
-const IsometricFarm = ({ plots, onSelectPlot, onPlantCrop, onHarvestCrop }: IsometricViewProps) => {
-  // Encontrar as dimensões da fazenda
-  const maxRow = Math.max(...plots.map(p => p.position.y));
-  const maxCol = Math.max(...plots.map(p => p.position.x));
-  const groundSize: [number, number] = [maxCol + 10, maxRow + 10]; // Increased ground size
+  // Adjust fog density based on time of day - more fog at night
+  const fogDensity = 0.01 + (1 - Math.max(0, Math.cos((timeOfDay - 12) / 12 * Math.PI))) * 0.03;
   
   return (
     <>
-      {/* Iluminação ambiente e direcional */}
-      <ambientLight intensity={0.6} />
+      {/* Dynamic sky */}
+      <color attach="background" args={[skyColor]} />
+      
+      {/* Sun */}
       <directionalLight 
-        position={[5, 10, 5]} 
-        intensity={1.2} 
+        position={sunPosition} 
+        intensity={directionalIntensity} 
         castShadow 
         shadow-mapSize={1024} 
       />
       
-      {/* Céu */}
-      <mesh position={[0, 15, 0]}>
-        <sphereGeometry args={[30, 32, 32]} />
-        <meshBasicMaterial color="#87CEEB" side={THREE.BackSide} />
-      </mesh>
+      {/* Ambient light */}
+      <ambientLight intensity={ambientIntensity} />
       
-      {/* Terreno base melhorado */}
-      <Ground size={groundSize} />
-      
-      {/* Decorações */}
-      <Decorations size={groundSize} />
-      
-      {/* Trees */}
-      <TreeDecorations size={groundSize} />
-      
-      {/* Grid de terrenos */}
-      {plots.map((plot) => (
-        <PlotMesh 
-          key={plot.id} 
-          plot={plot} 
-          onSelect={() => onSelectPlot(plot.id)}
-          onPlant={() => onPlantCrop(plot.id)}
-          onHarvest={() => onHarvestCrop(plot.id)}
-          position={[
-            plot.position.x - maxCol/2, 
-            0, 
-            plot.position.y - maxRow/2
-          ]}
-        />
-      ))}
-      
-      {/* Cerca em volta da fazenda */}
-      <Fence 
-        width={maxCol + 1} 
-        height={maxRow + 1}
-        offset={[-(maxCol+1)/2, 0, -(maxRow+1)/2]}
-      />
+      {/* Fog */}
+      <fog attach="fog" args={[fogColor, 5, 50]} />
     </>
   );
 };
 
-// Componente para a cerca em volta da fazenda
+// Fence component
 const Fence = ({ width, height, offset }: { width: number, height: number, offset: [number, number, number] }) => {
   const [offsetX, offsetY, offsetZ] = offset;
   
@@ -477,7 +422,7 @@ const Fence = ({ width, height, offset }: { width: number, height: number, offse
   return <>{posts}</>;
 };
 
-// Componente para um poste da cerca
+// Fence post component
 const FencePost = ({ position, rotation = [0, 0, 0] }: { position: [number, number, number], rotation?: [number, number, number] }) => {
   return (
     <group position={position} rotation={rotation}>
@@ -500,7 +445,259 @@ const FencePost = ({ position, rotation = [0, 0, 0] }: { position: [number, numb
   );
 };
 
+// Enhanced PlotMesh with intermediate growth stage
+const PlotMesh = ({ 
+  plot, 
+  onSelect,
+  onPlant,
+  onHarvest,
+  position,
+  currentTime 
+}: { 
+  plot: PlotState; 
+  onSelect: () => void;
+  onPlant: () => void;
+  onHarvest: () => void;
+  position: [number, number, number];
+  currentTime: number;
+}) => {
+  const meshRef = useRef<THREE.Mesh>(null);
+  
+  // Calculate growth percentage if crop is growing
+  const growthPercentage = plot.crop && plot.plantedAt
+    ? Math.min(100, ((currentTime - plot.plantedAt) / 1000) / plot.crop.growthTime * 100)
+    : 0;
+  
+  // Colors for different growth stages
+  const colors = {
+    empty: '#8B5E3C', // brown for soil
+    growing: '#90EE90', // light green for growing plants
+    ready: '#32CD32' // darker green for ready plants
+  };
+  
+  // Height of the plant based on growth stage and percentage
+  const getPlantHeight = () => {
+    if (plot.growthStage === 'empty') return 0.1;
+    if (plot.growthStage === 'ready') return 0.5;
+    
+    // For growing plants, return height based on growth percentage
+    // 0-33%: small seedling (0.1-0.2)
+    // 34-66%: medium plant (0.2-0.35)
+    // 67-99%: almost mature plant (0.35-0.5)
+    if (growthPercentage < 33) {
+      return 0.1 + (growthPercentage / 33) * 0.1; // 0.1 to 0.2
+    } else if (growthPercentage < 66) {
+      return 0.2 + ((growthPercentage - 33) / 33) * 0.15; // 0.2 to 0.35
+    } else {
+      return 0.35 + ((growthPercentage - 66) / 33) * 0.15; // 0.35 to almost 0.5
+    }
+  };
+  
+  const height = getPlantHeight();
+                
+  // Animation for ready plants
+  useFrame(({ clock }) => {
+    if (meshRef.current && plot.growthStage === 'ready') {
+      meshRef.current.position.y = height/2 + Math.sin(clock.getElapsedTime() * 2) * 0.05;
+    }
+  });
+  
+  // Direct planting handler
+  const handlePlotClick = () => {
+    if (plot.growthStage === 'ready') {
+      onHarvest();
+    } else if (plot.growthStage === 'empty') {
+      onPlant();
+    } else {
+      onSelect();
+    }
+  };
+  
+  return (
+    <group position={position}>
+      {/* Tilled soil */}
+      <mesh 
+        position={[0, -0.05, 0]} 
+        onClick={handlePlotClick}
+        receiveShadow
+      >
+        <boxGeometry args={[0.9, 0.1, 0.9]} />
+        <meshStandardMaterial color="#A97C50" />
+        {/* Lines in tilled soil */}
+        <mesh position={[0, 0.06, 0]} rotation={[0, Math.PI/4, 0]}>
+          <boxGeometry args={[0.85, 0.02, 0.85]} />
+          <meshStandardMaterial color="#8B4513" wireframe />
+        </mesh>
+      </mesh>
+      
+      {/* Plant */}
+      {plot.crop && plot.growthStage !== 'empty' && (
+        <>
+          {/* Plant stem */}
+          <mesh
+            ref={meshRef}
+            position={[0, height/2, 0]}
+            castShadow
+          >
+            <boxGeometry args={[0.15, height, 0.15]} />
+            <meshStandardMaterial color="#228B22" />
+          </mesh>
+          
+          {/* Plant leaves - change based on growth percentage */}
+          {plot.growthStage === 'growing' && (
+            <>
+              {growthPercentage < 33 && (
+                // Small seedling: two tiny leaves
+                <mesh position={[0, height, 0]} rotation={[0, 0, 0]}>
+                  <boxGeometry args={[0.2, 0.02, 0.1]} />
+                  <meshStandardMaterial color="#32CD32" />
+                </mesh>
+              )}
+              
+              {growthPercentage >= 33 && growthPercentage < 66 && (
+                // Medium stage: more leaves, slightly larger
+                <>
+                  <mesh position={[0.1, height-0.1, 0]} rotation={[0, 0, Math.PI/6]}>
+                    <boxGeometry args={[0.25, 0.02, 0.12]} />
+                    <meshStandardMaterial color="#32CD32" />
+                  </mesh>
+                  <mesh position={[-0.1, height-0.15, 0]} rotation={[0, 0, -Math.PI/6]}>
+                    <boxGeometry args={[0.25, 0.02, 0.12]} />
+                    <meshStandardMaterial color="#32CD32" />
+                  </mesh>
+                </>
+              )}
+              
+              {growthPercentage >= 66 && (
+                // Almost mature: full set of leaves
+                <>
+                  <mesh position={[0.1, height-0.1, 0.1]} rotation={[0, 0, Math.PI/6]}>
+                    <boxGeometry args={[0.3, 0.03, 0.15]} />
+                    <meshStandardMaterial color="#32CD32" />
+                  </mesh>
+                  <mesh position={[-0.1, height-0.15, -0.05]} rotation={[0, 0, -Math.PI/6]}>
+                    <boxGeometry args={[0.3, 0.03, 0.15]} />
+                    <meshStandardMaterial color="#32CD32" />
+                  </mesh>
+                  <mesh position={[0, height-0.05, -0.1]} rotation={[Math.PI/6, 0, 0]}>
+                    <boxGeometry args={[0.2, 0.03, 0.25]} />
+                    <meshStandardMaterial color="#32CD32" />
+                  </mesh>
+                </>
+              )}
+            </>
+          )}
+          
+          {/* Fruit/edible part of the plant */}
+          {plot.growthStage === 'ready' && (
+            <Html position={[0, height + 0.2, 0]} style={{ pointerEvents: 'none', transform: 'translate(-50%, -50%)' }}>
+              <div className="text-2xl" style={{transform: 'scale(1.2)'}}>{plot.crop.image}</div>
+            </Html>
+          )}
+        </>
+      )}
+      
+      {/* Glow around ready plants */}
+      {plot.crop && plot.growthStage === 'ready' && (
+        <pointLight
+          position={[0, height + 0.5, 0]}
+          intensity={0.5}
+          distance={1.5}
+          color="#FFFF99"
+        />
+      )}
+    </group>
+  );
+};
+
+const IsometricFarm = ({ 
+  plots, 
+  onSelectPlot, 
+  onPlantCrop, 
+  onHarvestCrop,
+  dayProgress = 50 // Default to midday
+}: IsometricViewProps & { dayProgress?: number }) => {
+  // Find farm dimensions
+  const maxRow = Math.max(...plots.map(p => p.position.y));
+  const maxCol = Math.max(...plots.map(p => p.position.x));
+  const farmSize: [number, number] = [maxCol + 1, maxRow + 1];
+  const groundSize: [number, number] = [maxCol + 30, maxRow + 30]; // Much larger ground
+  
+  // Get current time for growth calculations
+  const currentTime = Date.now();
+  
+  return (
+    <>
+      {/* Environment with day/night cycle */}
+      <Environment dayProgress={dayProgress} />
+      
+      {/* Ground base */}
+      <Ground size={groundSize} />
+      
+      {/* Grass tufts outside farm area */}
+      <GrassTufts farmSize={farmSize} avoidCenter={true} />
+      
+      {/* Distant mountains */}
+      <Mountains position={[0, 0, 0]} />
+      
+      {/* Distant houses */}
+      <DistantHouses />
+      
+      {/* Trees */}
+      <TreeDecorations size={groundSize} />
+      
+      {/* Plot grid */}
+      {plots.map((plot) => (
+        <PlotMesh 
+          key={plot.id} 
+          plot={plot}
+          currentTime={currentTime}
+          onSelect={() => onSelectPlot(plot.id)}
+          onPlant={() => onPlantCrop(plot.id)}
+          onHarvest={() => onHarvestCrop(plot.id)}
+          position={[
+            plot.position.x - maxCol/2, 
+            0, 
+            plot.position.y - maxRow/2
+          ]}
+        />
+      ))}
+      
+      {/* Fence around farm */}
+      <Fence 
+        width={maxCol + 1} 
+        height={maxRow + 1}
+        offset={[-(maxCol+1)/2, 0, -(maxRow+1)/2]}
+      />
+    </>
+  );
+};
+
 const IsometricView: React.FC<IsometricViewProps> = ({ plots, onSelectPlot, onPlantCrop, onHarvestCrop }) => {
+  // Get current time for animations and day progress
+  const [dayProgress, setDayProgress] = useState(50);
+  
+  // Update day progress based on game time
+  useEffect(() => {
+    const getDayProgress = () => {
+      const now = new Date();
+      const hour = now.getHours();
+      const minute = now.getMinutes();
+      // Map 24h to 0-100%
+      return ((hour * 60 + minute) / (24 * 60)) * 100;
+    };
+    
+    // Update every minute
+    const timer = setInterval(() => {
+      setDayProgress(getDayProgress());
+    }, 60000);
+    
+    // Initial setting
+    setDayProgress(getDayProgress());
+    
+    return () => clearInterval(timer);
+  }, []);
+  
   return (
     <div className="w-full h-[500px] rounded-lg overflow-hidden">
       <Canvas 
@@ -514,13 +711,14 @@ const IsometricView: React.FC<IsometricViewProps> = ({ plots, onSelectPlot, onPl
           minPolarAngle={Math.PI/6} 
           maxPolarAngle={Math.PI/2.5}
           minDistance={5}
-          maxDistance={15}
+          maxDistance={20}
         />
         <IsometricFarm 
           plots={plots} 
           onSelectPlot={onSelectPlot} 
           onPlantCrop={onPlantCrop} 
           onHarvestCrop={onHarvestCrop}
+          dayProgress={dayProgress}
         />
       </Canvas>
     </div>

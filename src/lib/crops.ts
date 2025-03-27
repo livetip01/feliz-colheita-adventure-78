@@ -1,33 +1,23 @@
 
 import { Crop, Season } from '../types/game';
 
-// Initial crops with balanced economy, season information, and DOUBLED growth times
+// Balanced crop list with progressive growth times and economy
 export const crops: Crop[] = [
   {
     id: 'potato',
     name: 'Batata',
-    growthTime: 70, // Doubled from 35
+    growthTime: 70, // Base growth time
     price: 7,
     yield: 16,
     image: '🥔',
     season: 'all',
     description: 'Cresce em qualquer estação, mas produz menos.',
-    unlocked: true // A batata começa desbloqueada
-  },
-  {
-    id: 'tomato',
-    name: 'Tomate',
-    growthTime: 60, // Doubled from 30
-    price: 10,
-    yield: 25,
-    image: '🍅',
-    season: 'summer',
-    description: 'Cresce bem no calor do verão.'
+    unlocked: true // Potato starts unlocked
   },
   {
     id: 'carrot',
     name: 'Cenoura',
-    growthTime: 40, // Doubled from 20
+    growthTime: 60, // Faster than potato
     price: 5,
     yield: 11,
     image: '🥕',
@@ -35,11 +25,21 @@ export const crops: Crop[] = [
     description: 'Cresce rápido na primavera.'
   },
   {
+    id: 'tomato',
+    name: 'Tomate',
+    growthTime: 80, // Slower than potato
+    price: 10,
+    yield: 22,
+    image: '🍅',
+    season: 'summer',
+    description: 'Cresce bem no calor do verão.'
+  },
+  {
     id: 'corn',
     name: 'Milho',
-    growthTime: 80, // Doubled from 40
+    growthTime: 100, // Even slower
     price: 15,
-    yield: 40,
+    yield: 35,
     image: '🌽',
     season: 'summer',
     description: 'Ideal para o sol forte do verão.'
@@ -47,9 +47,9 @@ export const crops: Crop[] = [
   {
     id: 'strawberry',
     name: 'Morango',
-    growthTime: 50, // Doubled from 25
+    growthTime: 90, // Medium growth time
     price: 20,
-    yield: 50,
+    yield: 42,
     image: '🍓',
     season: 'spring',
     description: 'Floresce na primavera com clima ameno.'
@@ -57,9 +57,9 @@ export const crops: Crop[] = [
   {
     id: 'pumpkin',
     name: 'Abóbora',
-    growthTime: 100, // Doubled from 50
+    growthTime: 120, // Slow growth
     price: 25,
-    yield: 70,
+    yield: 60,
     image: '🎃',
     season: 'fall',
     description: 'Melhor cultivada no outono.'
@@ -67,7 +67,7 @@ export const crops: Crop[] = [
   {
     id: 'wheat',
     name: 'Trigo',
-    growthTime: 60, // Doubled from 30
+    growthTime: 85, // Medium growth
     price: 8,
     yield: 18,
     image: '🌾',
@@ -77,9 +77,9 @@ export const crops: Crop[] = [
   {
     id: 'cabbage',
     name: 'Repolho',
-    growthTime: 90, // Doubled from 45
+    growthTime: 110, // Slower
     price: 12,
-    yield: 30,
+    yield: 28,
     image: '🥬',
     season: 'winter',
     description: 'Resiste bem ao frio do inverno.'
@@ -88,9 +88,9 @@ export const crops: Crop[] = [
   {
     id: 'watermelon',
     name: 'Melancia',
-    growthTime: 100,
+    growthTime: 140, // Very slow
     price: 30,
-    yield: 85,
+    yield: 75, // Reduced yield
     image: '🍉',
     season: 'summer',
     description: 'Uma fruta refrescante que adora calor.'
@@ -98,9 +98,9 @@ export const crops: Crop[] = [
   {
     id: 'eggplant',
     name: 'Berinjela',
-    growthTime: 70,
+    growthTime: 95, // Medium-slow
     price: 16,
-    yield: 42,
+    yield: 36, // Reduced yield
     image: '🍆',
     season: 'summer',
     description: 'Precisa de muito sol para crescer adequadamente.'
@@ -108,9 +108,9 @@ export const crops: Crop[] = [
   {
     id: 'grapes',
     name: 'Uvas',
-    growthTime: 120,
+    growthTime: 160, // Very slow
     price: 35,
-    yield: 100,
+    yield: 85, // Reduced yield
     image: '🍇',
     season: 'fall',
     description: 'Crescem melhor em climas temperados do outono.'
@@ -118,9 +118,9 @@ export const crops: Crop[] = [
   {
     id: 'broccoli',
     name: 'Brócolis',
-    growthTime: 65,
+    growthTime: 80, // Medium
     price: 14,
-    yield: 38,
+    yield: 32, // Reduced yield
     image: '🥦',
     season: 'winter',
     description: 'Prefere o clima mais frio do inverno.'
@@ -128,9 +128,9 @@ export const crops: Crop[] = [
   {
     id: 'pepper',
     name: 'Pimentão',
-    growthTime: 75,
+    growthTime: 105, // Medium-slow
     price: 18,
-    yield: 48,
+    yield: 42, // Reduced yield
     image: '🫑',
     season: 'summer',
     description: 'Cresce rapidamente em climas quentes.'
@@ -138,9 +138,9 @@ export const crops: Crop[] = [
   {
     id: 'avocado',
     name: 'Abacate',
-    growthTime: 140,
+    growthTime: 180, // Extremely slow
     price: 45,
-    yield: 130,
+    yield: 110, // Reduced yield
     image: '🥑',
     season: 'spring',
     description: 'Cultura de alto valor que requer paciência.'
@@ -148,9 +148,9 @@ export const crops: Crop[] = [
   {
     id: 'onion',
     name: 'Cebola',
-    growthTime: 55,
+    growthTime: 75, // Medium
     price: 12,
-    yield: 32,
+    yield: 26, // Reduced yield
     image: '🧅',
     season: 'spring',
     description: 'Cresce bem abaixo do solo na primavera.'
@@ -158,9 +158,9 @@ export const crops: Crop[] = [
   {
     id: 'garlic',
     name: 'Alho',
-    growthTime: 60,
+    growthTime: 85, // Medium
     price: 15,
-    yield: 40,
+    yield: 34, // Reduced yield
     image: '🧄',
     season: 'fall',
     description: 'Um tempero essencial que amadurece no outono.'

@@ -1,4 +1,3 @@
-
 import React, { useReducer, useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Grid3X3, Plus } from 'lucide-react';
@@ -11,7 +10,7 @@ import { gameReducer, initialGameState, crops, saveGame, loadGame, getPlotExpans
 import { toast } from '../components/ui/use-toast';
 import { Button } from './ui/button';
 
-const DAY_DURATION = 120; // Duração de um dia em segundos (2 minutos)
+const DAY_DURATION = 120; // Day duration in seconds (2 minutes)
 
 const GameBoard: React.FC = () => {
   const [gameState, dispatch] = useReducer(gameReducer, initialGameState);
@@ -76,7 +75,6 @@ const GameBoard: React.FC = () => {
     });
   };
 
-  // Completely reworked planting system - now planting happens directly on plot click
   const handlePlantCrop = (plotId: string) => {
     console.log("Attempting to plant on plot:", plotId);
     
@@ -89,14 +87,12 @@ const GameBoard: React.FC = () => {
       return;
     }
     
-    // Find the plot to verify it's empty
     const plot = gameState.plots.find(p => p.id === plotId);
     if (!plot) {
       console.error("Plot not found:", plotId);
       return;
     }
     
-    // If plot already has a crop, don't proceed
     if (plot.crop) {
       console.log("Plot already has a crop:", plot.crop.name);
       toast({
@@ -107,7 +103,6 @@ const GameBoard: React.FC = () => {
       return;
     }
     
-    // Check inventory for seeds
     const inventoryItem = gameState.inventory.find(
       item => item.crop.id === gameState.selectedCrop?.id
     );
@@ -121,7 +116,6 @@ const GameBoard: React.FC = () => {
       return;
     }
     
-    // Check if crop is unlocked
     if (!gameState.unlockedCrops?.includes(gameState.selectedCrop.id)) {
       toast({
         title: "Cultura bloqueada",
@@ -131,7 +125,6 @@ const GameBoard: React.FC = () => {
       return;
     }
     
-    // All checks passed, plant the crop
     console.log("Planting crop:", gameState.selectedCrop.name, "on plot:", plotId);
     dispatch({ 
       type: 'PLANT_CROP', 
@@ -173,7 +166,6 @@ const GameBoard: React.FC = () => {
   };
 
   const handleBuyCrop = (crop: ReturnType<typeof crops.find>, quantity: number) => {
-    // Verificar se a cultura está desbloqueada
     if (!gameState.unlockedCrops?.includes(crop.id)) {
       toast({
         title: "Cultura bloqueada",
@@ -201,24 +193,20 @@ const GameBoard: React.FC = () => {
   };
 
   const handleUnlockCrop = (cropId: string) => {
-    // Encontrar a cultura a ser desbloqueada
     const cropToUnlock = crops.find(crop => crop.id === cropId);
     if (!cropToUnlock) return;
     
-    // Calcular o preço de desbloqueio (10x o preço unitário)
     const unlockPrice = cropToUnlock.price * 10;
     
-    // Verificar se o jogador tem moedas suficientes
     if (gameState.coins < unlockPrice) {
       toast({
         title: "Moedas insuficientes",
-        description: "Você não tem moedas suficientes para desbloquear esta cultura.",
+        description: `Você precisa de ${unlockPrice} moedas para desbloquear esta cultura.`,
         variant: "destructive",
       });
       return;
     }
     
-    // Desbloquear a cultura
     dispatch({ type: 'UNLOCK_CROP', cropId });
     
     toast({
@@ -226,12 +214,10 @@ const GameBoard: React.FC = () => {
       description: `Você desbloqueou ${cropToUnlock.name}. Agora você pode comprar e plantar esta cultura.`,
     });
   };
-  
+
   const handleIncreasePlotSize = () => {
-    // Calcular o custo com base no tamanho atual da grade
     const cost = getPlotExpansionCost(gameState.gridSize);
     
-    // Verificar se o jogador tem moedas suficientes
     if (gameState.coins < cost) {
       toast({
         title: "Moedas insuficientes",
@@ -241,7 +227,6 @@ const GameBoard: React.FC = () => {
       return;
     }
     
-    // Aumentar o tamanho do terreno
     dispatch({ type: 'INCREASE_PLOT_SIZE' });
     
     toast({
@@ -250,17 +235,14 @@ const GameBoard: React.FC = () => {
     });
   };
 
-  // Calculate day progress
   const dayProgress = Math.min(100, Math.round((timeElapsed / DAY_DURATION) * 100));
 
-  // Garanta que gameState.unlockedCrops existe antes de usar filter
   const hotbarItems = gameState.inventory.filter(item => 
     item.quantity > 0 && 
     (gameState.unlockedCrops?.includes(item.crop.id) || false) && 
     (item.crop.season === 'all' || item.crop.season === gameState.currentSeason)
   );
-  
-  // Calcular o custo para expandir o terreno
+
   const expansionCost = getPlotExpansionCost(gameState.gridSize);
 
   return (
@@ -299,7 +281,6 @@ const GameBoard: React.FC = () => {
         <IsometricView 
           plots={gameState.plots}
           onSelectPlot={(plotId) => {
-            // Pass-through to the plant handler - we don't need selection step anymore
             console.log("Plot clicked:", plotId);
             handlePlantCrop(plotId);
           }}
