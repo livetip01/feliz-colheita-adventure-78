@@ -1,4 +1,3 @@
-
 import React, { useReducer, useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Grid3X3, Plus } from 'lucide-react';
@@ -8,10 +7,10 @@ import Hotbar from './Hotbar';
 import Shop from './Shop';
 import IsometricView from './IsometricView';
 import { gameReducer, initialGameState, crops, saveGame, loadGame, getPlotExpansionCost } from '../lib/game';
-import { toast } from '../components/ui/use-toast';
 import { Button } from './ui/button';
 
-const DAY_DURATION = 120; // Day duration in seconds (2 minutes)
+// Increased from 120 to 240 seconds (4 minutes) for smoother transitions
+const DAY_DURATION = 240; 
 
 const GameBoard: React.FC = () => {
   const [gameState, dispatch] = useReducer(gameReducer, initialGameState);
@@ -23,10 +22,7 @@ const GameBoard: React.FC = () => {
     const savedGame = loadGame();
     if (savedGame) {
       dispatch({ type: 'LOAD_GAME', state: savedGame });
-      toast({
-        title: "Jogo carregado",
-        description: "Seu jogo foi carregado automaticamente.",
-      });
+      // Removed toast notification
     }
   }, []);
 
@@ -39,10 +35,7 @@ const GameBoard: React.FC = () => {
         if (newTime >= DAY_DURATION) {
           dispatch({ type: 'NEXT_DAY' });
           saveGame(gameState);
-          toast({
-            title: "Novo dia",
-            description: `Dia ${gameState.dayCount + 1}. Seu jogo foi salvo automaticamente.`,
-          });
+          // Removed toast notification
           return 0;
         }
         
@@ -69,22 +62,15 @@ const GameBoard: React.FC = () => {
   const handleSelectCrop = (crop: ReturnType<typeof crops.find>) => {
     console.log("Selected crop:", crop.name);
     dispatch({ type: 'SELECT_CROP', crop });
-    
-    toast({
-      title: "Semente selecionada",
-      description: `${crop.name} selecionada para plantio.`,
-    });
+    // Removed toast notification
   };
 
   const handlePlantCrop = (plotId: string) => {
     console.log("Attempting to plant on plot:", plotId);
     
     if (!gameState.selectedCrop) {
-      toast({
-        title: "Selecione uma semente",
-        description: "Você precisa selecionar uma semente para plantar.",
-        variant: "destructive",
-      });
+      // Removed toast notification, kept the console log
+      console.log("No seed selected");
       return;
     }
     
@@ -96,11 +82,7 @@ const GameBoard: React.FC = () => {
     
     if (plot.crop) {
       console.log("Plot already has a crop:", plot.crop.name);
-      toast({
-        title: "Terreno ocupado",
-        description: "Este terreno já possui uma cultura plantada.",
-        variant: "destructive",
-      });
+      // Removed toast notification
       return;
     }
     
@@ -109,20 +91,14 @@ const GameBoard: React.FC = () => {
     );
     
     if (!inventoryItem || inventoryItem.quantity <= 0) {
-      toast({
-        title: "Sementes insuficientes",
-        description: "Você não tem sementes suficientes para plantar.",
-        variant: "destructive",
-      });
+      // Removed toast notification
+      console.log("Not enough seeds");
       return;
     }
     
     if (!gameState.unlockedCrops?.includes(gameState.selectedCrop.id)) {
-      toast({
-        title: "Cultura bloqueada",
-        description: "Você precisa desbloquear esta cultura na loja antes de plantá-la.",
-        variant: "destructive",
-      });
+      // Removed toast notification
+      console.log("Crop is locked");
       return;
     }
     
@@ -134,10 +110,14 @@ const GameBoard: React.FC = () => {
       time: Date.now() 
     });
     
-    toast({
-      title: "Plantado com sucesso",
-      description: `Você plantou ${gameState.selectedCrop.name}.`,
-    });
+    // Removed toast notification
+    
+    // Play plant sound
+    const plantSound = document.getElementById('plant-sound') as HTMLAudioElement;
+    if (plantSound) {
+      plantSound.currentTime = 0;
+      plantSound.play().catch(e => console.error("Error playing sound:", e));
+    }
   };
 
   const handleHarvestCrop = (plotId: string) => {
@@ -149,48 +129,39 @@ const GameBoard: React.FC = () => {
     
     if (plot.growthStage !== 'ready') {
       console.log("Crop not ready for harvest:", plot.growthStage);
-      toast({
-        title: "Cultura não pronta",
-        description: "Esta cultura ainda não está pronta para colheita.",
-        variant: "destructive",
-      });
+      // Removed toast notification
       return;
     }
     
     console.log("Harvesting crop:", plot.crop.name, "from plot:", plotId);
     dispatch({ type: 'HARVEST_CROP', plotId, time: Date.now() });
     
-    toast({
-      title: "Colheita realizada",
-      description: `Você ganhou ${plot.crop.yield} moedas!`,
-    });
+    // Removed toast notification
+    
+    // Play harvest sound
+    const harvestSound = document.getElementById('harvest-sound') as HTMLAudioElement;
+    if (harvestSound) {
+      harvestSound.currentTime = 0;
+      harvestSound.play().catch(e => console.error("Error playing sound:", e));
+    }
   };
 
   const handleBuyCrop = (crop: ReturnType<typeof crops.find>, quantity: number) => {
     if (!gameState.unlockedCrops?.includes(crop.id)) {
-      toast({
-        title: "Cultura bloqueada",
-        description: "Você precisa desbloquear esta cultura antes de comprá-la.",
-        variant: "destructive",
-      });
+      // Removed toast notification
+      console.log("Crop is locked");
       return;
     }
     
     if (gameState.coins < crop.price * quantity) {
-      toast({
-        title: "Moedas insuficientes",
-        description: "Você não tem moedas suficientes para comprar estas sementes.",
-        variant: "destructive",
-      });
+      // Removed toast notification
+      console.log("Not enough coins");
       return;
     }
     
     dispatch({ type: 'BUY_CROP', crop, quantity });
     
-    toast({
-      title: "Compra realizada",
-      description: `Você comprou ${quantity} ${crop.name}.`,
-    });
+    // Removed toast notification
   };
 
   const handleUnlockCrop = (cropId: string) => {
@@ -200,40 +171,28 @@ const GameBoard: React.FC = () => {
     const unlockPrice = cropToUnlock.price * 10;
     
     if (gameState.coins < unlockPrice) {
-      toast({
-        title: "Moedas insuficientes",
-        description: `Você precisa de ${unlockPrice} moedas para desbloquear esta cultura.`,
-        variant: "destructive",
-      });
+      // Removed toast notification
+      console.log("Not enough coins");
       return;
     }
     
     dispatch({ type: 'UNLOCK_CROP', cropId });
     
-    toast({
-      title: "Cultura desbloqueada",
-      description: `Você desbloqueou ${cropToUnlock.name}. Agora você pode comprar e plantar esta cultura.`,
-    });
+    // Removed toast notification
   };
 
   const handleIncreasePlotSize = () => {
     const cost = getPlotExpansionCost(gameState.gridSize);
     
     if (gameState.coins < cost) {
-      toast({
-        title: "Moedas insuficientes",
-        description: `Você precisa de ${cost} moedas para aumentar seu terreno.`,
-        variant: "destructive",
-      });
+      // Removed toast notification
+      console.log("Not enough coins");
       return;
     }
     
     dispatch({ type: 'INCREASE_PLOT_SIZE' });
     
-    toast({
-      title: "Terreno expandido",
-      description: `Seu terreno agora é ${gameState.gridSize.rows + 1}x${gameState.gridSize.cols + 1}.`,
-    });
+    // Removed toast notification
   };
 
   const dayProgress = Math.min(100, Math.round((timeElapsed / DAY_DURATION) * 100));

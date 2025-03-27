@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import GameBoard from '../components/GameBoard';
-import { useToast } from '../components/ui/use-toast';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../components/ui/sheet';
 import { Slider } from '../components/ui/slider';
 import { Switch } from '../components/ui/switch';
@@ -74,7 +73,7 @@ const Index = () => {
         <p>Colheita Feliz - Inspirado no jogo original da Mentez</p>
       </footer>
       
-      {/* Audio elements - adding correct paths */}
+      {/* Audio elements */}
       <audio id="plant-sound" src="/sounds/plant.mp3" preload="auto"></audio>
       <audio id="harvest-sound" src="/sounds/harvest.mp3" preload="auto"></audio>
     </motion.div>

@@ -1,4 +1,3 @@
-
 import { Crop, Season } from '../types/game';
 
 // Balanced crop list with progressive growth times and economy
@@ -84,7 +83,96 @@ export const crops: Crop[] = [
     season: 'winter',
     description: 'Resiste bem ao frio do inverno.'
   },
-  // Novas plantas adicionadas
+  {
+    id: 'peas',
+    name: 'Ervilhas',
+    growthTime: 65,
+    price: 10,
+    yield: 22,
+    image: '🌱',
+    season: 'spring',
+    description: 'Pequenas vagens que crescem bem na primavera.'
+  },
+  {
+    id: 'lettuce',
+    name: 'Alface',
+    growthTime: 45,
+    price: 7,
+    yield: 14,
+    image: '🥬',
+    season: 'spring',
+    description: 'Folhas verdes que crescem rapidamente no clima ameno da primavera.'
+  },
+  {
+    id: 'cucumber',
+    name: 'Pepino',
+    growthTime: 70,
+    price: 12,
+    yield: 26,
+    image: '🥒',
+    season: 'summer',
+    description: 'Vegetal refrescante que cresce bem no verão.'
+  },
+  {
+    id: 'blueberry',
+    name: 'Mirtilo',
+    growthTime: 110,
+    price: 25,
+    yield: 60,
+    image: '🫐',
+    season: 'summer',
+    description: 'Pequenas frutas azuis que adoram o sol do verão.'
+  },
+  {
+    id: 'mushroom',
+    name: 'Cogumelo',
+    growthTime: 50,
+    price: 15,
+    yield: 32,
+    image: '🍄',
+    season: 'fall',
+    description: 'Cresce bem no ambiente úmido do outono.'
+  },
+  {
+    id: 'turnip',
+    name: 'Nabo',
+    growthTime: 60,
+    price: 9,
+    yield: 20,
+    image: '🥕',
+    season: 'fall',
+    description: 'Raiz nutritiva que prefere o clima do outono.'
+  },
+  {
+    id: 'kale',
+    name: 'Couve',
+    growthTime: 70,
+    price: 11,
+    yield: 25,
+    image: '🥬',
+    season: 'winter',
+    description: 'Folha resistente que aguenta bem o frio do inverno.'
+  },
+  {
+    id: 'leek',
+    name: 'Alho-poró',
+    growthTime: 90,
+    price: 13,
+    yield: 30,
+    image: '🧅',
+    season: 'winter',
+    description: 'Vegetal de inverno com sabor suave de cebola.'
+  },
+  {
+    id: 'herb',
+    name: 'Ervas',
+    growthTime: 40,
+    price: 8,
+    yield: 15,
+    image: '🌿',
+    season: 'all',
+    description: 'Plantas aromáticas que crescem em qualquer estação.'
+  },
   {
     id: 'watermelon',
     name: 'Melancia',
