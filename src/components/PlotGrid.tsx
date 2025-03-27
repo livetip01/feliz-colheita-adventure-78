@@ -19,7 +19,7 @@ const PlotGrid: React.FC<PlotGridProps> = ({
   onPlantCrop,
   onHarvestCrop
 }) => {
-  // Obter as dimensões da grade a partir dos plots existentes
+  // Get the grid dimensions from the game state
   const gridWidth = Math.max(...plots.map(p => p.position.x)) + 1;
   const gridHeight = Math.max(...plots.map(p => p.position.y)) + 1;
   
@@ -103,8 +103,8 @@ const PlotGrid: React.FC<PlotGridProps> = ({
         className="absolute left-1/2 transform -translate-x-1/2"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(10, 50px)',
-          gridTemplateRows: 'repeat(10, 50px)',
+          gridTemplateColumns: `repeat(${gridWidth + 6}, 50px)`, // Dynamic grid columns based on actual grid width + expansion
+          gridTemplateRows: `repeat(${gridHeight + 6}, 50px)`, // Dynamic grid rows based on actual grid height + expansion
           transform: 'rotateX(60deg) rotateZ(45deg)',
           transformStyle: 'preserve-3d'
         }}

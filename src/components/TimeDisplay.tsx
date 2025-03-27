@@ -3,7 +3,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Season } from '../types/game';
 import { getSeasonName } from '../lib/crops'; // Updated import path
-import { Calendar, Clock, Sun } from 'lucide-react';
+import { Calendar, Clock, Sun, Cloud, CloudRain } from 'lucide-react';
 import { Progress } from './ui/progress';
 import {
   Tooltip,
@@ -15,12 +15,14 @@ interface TimeDisplayProps {
   currentSeason: Season;
   dayCount: number;
   dayProgress: number;
+  isRainyDay?: boolean;
 }
 
 const TimeDisplay: React.FC<TimeDisplayProps> = ({ 
   currentSeason, 
   dayCount, 
-  dayProgress
+  dayProgress,
+  isRainyDay = false
 }) => {
   const seasonColors: Record<Season, string> = {
     spring: 'from-green-100 to-green-200',
@@ -60,6 +62,16 @@ const TimeDisplay: React.FC<TimeDisplayProps> = ({
             <div className="flex items-center text-sm text-muted-foreground">
               <Calendar className="h-3 w-3 mr-1" />
               <span>Dia {dayCount}</span>
+              {isRainyDay && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    <CloudRain className="h-3 w-3 ml-2 text-blue-500" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Dia chuvoso</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </div>
           </div>
         </div>

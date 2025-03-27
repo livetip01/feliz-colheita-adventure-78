@@ -16,26 +16,52 @@ const GameBoard: React.FC = () => {
   const [gameState, dispatch] = useReducer(gameReducer, initialGameState);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const gameTimeRef = useRef<NodeJS.Timeout | null>(null);
+  const [isRainyDay, setIsRainyDay] = useState(false);
 
   // Load game on mount
   useEffect(() => {
     const savedGame = loadGame();
     if (savedGame) {
       dispatch({ type: 'LOAD_GAME', state: savedGame });
-      // Removed toast notification
     }
+    
+    // Initialize rainy day based on season
+    determineRainyDay(gameState.currentSeason);
   }, []);
 
-  // Setup game time
+  // Determine if it's a rainy day based on the season
+  const determineRainyDay = (season: string) => {
+    const rainChance = {
+      spring: 20,
+      summer: 10,
+      winter: 40,
+      fall: 30
+    }[season];
+    
+    const isRainy = Math.random() * 100 < rainChance;
+    setIsRainyDay(isRainy);
+  };
+
+  // Setup game time with smoother increments
   useEffect(() => {
+    // Clear previous interval if exists
+    if (gameTimeRef.current) {
+      clearInterval(gameTimeRef.current);
+    }
+    
+    // Use much faster updates for smoother time progression
+    // Update every 100ms (10 times per second) instead of every second
+    const ticksPerSecond = 10;
+    const incrementPerTick = 1 / ticksPerSecond;
+    
     const advanceGameTime = () => {
       setTimeElapsed(prev => {
-        const newTime = prev + 1;
+        const newTime = prev + incrementPerTick;
         
         if (newTime >= DAY_DURATION) {
           dispatch({ type: 'NEXT_DAY' });
           saveGame(gameState);
-          // Removed toast notification
+          determineRainyDay(gameState.currentSeason);
           return 0;
         }
         
@@ -43,7 +69,7 @@ const GameBoard: React.FC = () => {
       });
     };
     
-    gameTimeRef.current = setInterval(advanceGameTime, 1000);
+    gameTimeRef.current = setInterval(advanceGameTime, 1000 / ticksPerSecond);
     return () => {
       if (gameTimeRef.current) {
         clearInterval(gameTimeRef.current);
@@ -62,14 +88,12 @@ const GameBoard: React.FC = () => {
   const handleSelectCrop = (crop: ReturnType<typeof crops.find>) => {
     console.log("Selected crop:", crop.name);
     dispatch({ type: 'SELECT_CROP', crop });
-    // Removed toast notification
   };
 
   const handlePlantCrop = (plotId: string) => {
     console.log("Attempting to plant on plot:", plotId);
     
     if (!gameState.selectedCrop) {
-      // Removed toast notification, kept the console log
       console.log("No seed selected");
       return;
     }
@@ -82,7 +106,6 @@ const GameBoard: React.FC = () => {
     
     if (plot.crop) {
       console.log("Plot already has a crop:", plot.crop.name);
-      // Removed toast notification
       return;
     }
     
@@ -91,13 +114,11 @@ const GameBoard: React.FC = () => {
     );
     
     if (!inventoryItem || inventoryItem.quantity <= 0) {
-      // Removed toast notification
       console.log("Not enough seeds");
       return;
     }
     
     if (!gameState.unlockedCrops?.includes(gameState.selectedCrop.id)) {
-      // Removed toast notification
       console.log("Crop is locked");
       return;
     }
@@ -109,8 +130,6 @@ const GameBoard: React.FC = () => {
       crop: gameState.selectedCrop, 
       time: Date.now() 
     });
-    
-    // Removed toast notification
     
     // Play plant sound
     const plantSound = document.getElementById('plant-sound') as HTMLAudioElement;
@@ -129,14 +148,11 @@ const GameBoard: React.FC = () => {
     
     if (plot.growthStage !== 'ready') {
       console.log("Crop not ready for harvest:", plot.growthStage);
-      // Removed toast notification
       return;
     }
     
     console.log("Harvesting crop:", plot.crop.name, "from plot:", plotId);
     dispatch({ type: 'HARVEST_CROP', plotId, time: Date.now() });
-    
-    // Removed toast notification
     
     // Play harvest sound
     const harvestSound = document.getElementById('harvest-sound') as HTMLAudioElement;
@@ -148,20 +164,16 @@ const GameBoard: React.FC = () => {
 
   const handleBuyCrop = (crop: ReturnType<typeof crops.find>, quantity: number) => {
     if (!gameState.unlockedCrops?.includes(crop.id)) {
-      // Removed toast notification
       console.log("Crop is locked");
       return;
     }
     
     if (gameState.coins < crop.price * quantity) {
-      // Removed toast notification
       console.log("Not enough coins");
       return;
     }
     
     dispatch({ type: 'BUY_CROP', crop, quantity });
-    
-    // Removed toast notification
   };
 
   const handleUnlockCrop = (cropId: string) => {
@@ -171,28 +183,27 @@ const GameBoard: React.FC = () => {
     const unlockPrice = cropToUnlock.price * 10;
     
     if (gameState.coins < unlockPrice) {
-      // Removed toast notification
       console.log("Not enough coins");
       return;
     }
     
     dispatch({ type: 'UNLOCK_CROP', cropId });
-    
-    // Removed toast notification
   };
 
   const handleIncreasePlotSize = () => {
     const cost = getPlotExpansionCost(gameState.gridSize);
     
     if (gameState.coins < cost) {
-      // Removed toast notification
       console.log("Not enough coins");
       return;
     }
     
     dispatch({ type: 'INCREASE_PLOT_SIZE' });
-    
-    // Removed toast notification
+  };
+
+  const handleChangeSeason = (season: string) => {
+    dispatch({ type: 'CHANGE_SEASON', season: season as any });
+    determineRainyDay(season);
   };
 
   const dayProgress = Math.min(100, Math.round((timeElapsed / DAY_DURATION) * 100));
@@ -219,6 +230,7 @@ const GameBoard: React.FC = () => {
           currentSeason={gameState.currentSeason}
           dayCount={gameState.dayCount}
           dayProgress={dayProgress}
+          isRainyDay={isRainyDay}
         />
       </div>
       
@@ -237,7 +249,7 @@ const GameBoard: React.FC = () => {
         </Button>
       </div>
       
-      <div className="glass-panel mb-6 overflow-hidden">
+      <div className="glass-panel mb-6 overflow-hidden h-96">
         <IsometricView 
           plots={gameState.plots}
           onSelectPlot={(plotId) => {
@@ -247,6 +259,7 @@ const GameBoard: React.FC = () => {
           onPlantCrop={handlePlantCrop}
           onHarvestCrop={handleHarvestCrop}
           dayProgress={dayProgress}
+          isRainyDay={isRainyDay}
         />
       </div>
       
