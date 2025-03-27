@@ -1,3 +1,4 @@
+
 import React, { useReducer, useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Grid3X3, Plus } from 'lucide-react';
@@ -17,6 +18,7 @@ const GameBoard: React.FC = () => {
   const [timeElapsed, setTimeElapsed] = useState(0);
   const gameTimeRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Load game on mount
   useEffect(() => {
     const savedGame = loadGame();
     if (savedGame) {
@@ -28,6 +30,7 @@ const GameBoard: React.FC = () => {
     }
   }, []);
 
+  // Setup game time
   useEffect(() => {
     const advanceGameTime = () => {
       setTimeElapsed(prev => {
@@ -55,6 +58,7 @@ const GameBoard: React.FC = () => {
     };
   }, [gameState.dayCount, gameState.currentSeason]);
 
+  // Update growth
   useEffect(() => {
     const interval = setInterval(() => {
       dispatch({ type: 'UPDATE_GROWTH', time: Date.now() });
@@ -63,14 +67,19 @@ const GameBoard: React.FC = () => {
   }, []);
 
   const handleSelectCrop = (crop: ReturnType<typeof crops.find>) => {
+    console.log("Selected crop:", crop.name);
     dispatch({ type: 'SELECT_CROP', crop });
+    
+    toast({
+      title: "Semente selecionada",
+      description: `${crop.name} selecionada para plantio.`,
+    });
   };
 
-  const handleSelectPlot = (plotId: string) => {
-    dispatch({ type: 'SELECT_PLOT', plotId });
-  };
-
+  // Completely reworked planting system - now planting happens directly on plot click
   const handlePlantCrop = (plotId: string) => {
+    console.log("Attempting to plant on plot:", plotId);
+    
     if (!gameState.selectedCrop) {
       toast({
         title: "Selecione uma semente",
@@ -80,6 +89,25 @@ const GameBoard: React.FC = () => {
       return;
     }
     
+    // Find the plot to verify it's empty
+    const plot = gameState.plots.find(p => p.id === plotId);
+    if (!plot) {
+      console.error("Plot not found:", plotId);
+      return;
+    }
+    
+    // If plot already has a crop, don't proceed
+    if (plot.crop) {
+      console.log("Plot already has a crop:", plot.crop.name);
+      toast({
+        title: "Terreno ocupado",
+        description: "Este terreno já possui uma cultura plantada.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check inventory for seeds
     const inventoryItem = gameState.inventory.find(
       item => item.crop.id === gameState.selectedCrop?.id
     );
@@ -93,7 +121,7 @@ const GameBoard: React.FC = () => {
       return;
     }
     
-    // Verificar se a cultura está desbloqueada
+    // Check if crop is unlocked
     if (!gameState.unlockedCrops?.includes(gameState.selectedCrop.id)) {
       toast({
         title: "Cultura bloqueada",
@@ -103,27 +131,8 @@ const GameBoard: React.FC = () => {
       return;
     }
     
-    // Pegar o plot atual para verificação
-    const plot = gameState.plots.find(p => p.id === plotId);
-    if (!plot) {
-      toast({
-        title: "Terreno não encontrado",
-        description: "Ocorreu um erro ao encontrar o terreno.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Verificar se o terreno já tem cultura
-    if (plot.crop) {
-      toast({
-        title: "Terreno ocupado",
-        description: "Este terreno já possui uma cultura plantada.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
+    // All checks passed, plant the crop
+    console.log("Planting crop:", gameState.selectedCrop.name, "on plot:", plotId);
     dispatch({ 
       type: 'PLANT_CROP', 
       plotId, 
@@ -139,8 +148,22 @@ const GameBoard: React.FC = () => {
 
   const handleHarvestCrop = (plotId: string) => {
     const plot = gameState.plots.find(p => p.id === plotId);
-    if (!plot?.crop) return;
+    if (!plot?.crop) {
+      console.log("No crop to harvest on plot:", plotId);
+      return;
+    }
     
+    if (plot.growthStage !== 'ready') {
+      console.log("Crop not ready for harvest:", plot.growthStage);
+      toast({
+        title: "Cultura não pronta",
+        description: "Esta cultura ainda não está pronta para colheita.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    console.log("Harvesting crop:", plot.crop.name, "from plot:", plotId);
     dispatch({ type: 'HARVEST_CROP', plotId, time: Date.now() });
     
     toast({
@@ -227,6 +250,7 @@ const GameBoard: React.FC = () => {
     });
   };
 
+  // Calculate day progress
   const dayProgress = Math.min(100, Math.round((timeElapsed / DAY_DURATION) * 100));
 
   // Garanta que gameState.unlockedCrops existe antes de usar filter
@@ -274,7 +298,11 @@ const GameBoard: React.FC = () => {
       <div className="glass-panel mb-6 overflow-hidden">
         <IsometricView 
           plots={gameState.plots}
-          onSelectPlot={handleSelectPlot}
+          onSelectPlot={(plotId) => {
+            // Pass-through to the plant handler - we don't need selection step anymore
+            console.log("Plot clicked:", plotId);
+            handlePlantCrop(plotId);
+          }}
           onPlantCrop={handlePlantCrop}
           onHarvestCrop={handleHarvestCrop}
         />

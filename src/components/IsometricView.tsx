@@ -1,5 +1,5 @@
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import { PlotState } from '../types/game';
@@ -11,6 +11,55 @@ interface IsometricViewProps {
   onPlantCrop: (id: string) => void;
   onHarvestCrop: (id: string) => void;
 }
+
+// Tree component
+const Tree = ({ position, scale = 1, type = 0 }) => {
+  const treeTypes = [
+    { trunkColor: '#8B4513', leavesColor: '#228B22', shape: 'cone' },
+    { trunkColor: '#A0522D', leavesColor: '#32CD32', shape: 'sphere' },
+    { trunkColor: '#5D4037', leavesColor: '#2E7D32', shape: 'pyramid' }
+  ];
+  
+  const tree = treeTypes[type % treeTypes.length];
+  
+  return (
+    <group position={position} scale={scale}>
+      {/* Tree trunk */}
+      <mesh position={[0, 0.5, 0]} castShadow>
+        <cylinderGeometry args={[0.2, 0.3, 1, 8]} />
+        <meshStandardMaterial color={tree.trunkColor} />
+      </mesh>
+      
+      {/* Tree leaves */}
+      {tree.shape === 'cone' && (
+        <mesh position={[0, 1.5, 0]} castShadow>
+          <coneGeometry args={[1, 2, 8]} />
+          <meshStandardMaterial color={tree.leavesColor} />
+        </mesh>
+      )}
+      
+      {tree.shape === 'sphere' && (
+        <mesh position={[0, 1.8, 0]} castShadow>
+          <sphereGeometry args={[1, 8, 8]} />
+          <meshStandardMaterial color={tree.leavesColor} />
+        </mesh>
+      )}
+      
+      {tree.shape === 'pyramid' && (
+        <>
+          <mesh position={[0, 1.2, 0]} castShadow>
+            <coneGeometry args={[1.2, 1, 4]} />
+            <meshStandardMaterial color={tree.leavesColor} />
+          </mesh>
+          <mesh position={[0, 2, 0]} castShadow>
+            <coneGeometry args={[0.8, 1, 4]} />
+            <meshStandardMaterial color={tree.leavesColor} />
+          </mesh>
+        </>
+      )}
+    </group>
+  );
+};
 
 // Componente para o terreno base (grama melhorada)
 const Ground = ({ size }: { size: [number, number] }) => {
@@ -46,27 +95,33 @@ const Ground = ({ size }: { size: [number, number] }) => {
         />
       </mesh>
       
-      {/* Random grass tufts for texture */}
+      {/* Fixed grass tufts for texture */}
       <GrassTufts size={[groundWidth, groundHeight]} />
     </>
   );
 };
 
-// Component for generating random grass tufts
+// Component for generating fixed grass tufts
 const GrassTufts = ({ size }: { size: [number, number] }) => {
-  const [tufts, setTufts] = useState<JSX.Element[]>([]);
-  
-  useEffect(() => {
+  // Use useMemo to create a stable set of grass tufts
+  const tufts = useMemo(() => {
     const [width, height] = size;
-    const items: JSX.Element[] = [];
+    const items = [];
+    
+    // Generate a deterministic seed
+    const seed = (width * 1000 + height);
     
     // Generate a bunch of small grass tufts across the field
     for (let i = 0; i < 300; i++) {
-      const x = (Math.random() - 0.5) * width;
-      const z = (Math.random() - 0.5) * height;
+      // Use deterministic pseudo-random values
+      const pseudoRandom1 = Math.sin(seed * i) * 0.5 + 0.5;
+      const pseudoRandom2 = Math.cos(seed * i) * 0.5 + 0.5;
       
-      // Vary the grass color slightly
-      const colorVariance = Math.random() * 0.2;
+      const x = (pseudoRandom1 - 0.5) * width;
+      const z = (pseudoRandom2 - 0.5) * height;
+      
+      // Vary the grass color slightly but deterministically
+      const colorVariance = (pseudoRandom1 * pseudoRandom2) * 0.2;
       const color = new THREE.Color(0.2 + colorVariance, 0.5 + colorVariance, 0.1);
       
       items.push(
@@ -74,13 +129,13 @@ const GrassTufts = ({ size }: { size: [number, number] }) => {
           key={`tuft-${i}`}
           position={[x, 0, z]} 
           color={color}
-          scale={Math.random() * 0.4 + 0.2}
+          scale={pseudoRandom1 * 0.4 + 0.2}
         />
       );
     }
     
-    setTufts(items);
-  }, [size]);
+    return items;
+  }, [size]); // Only depends on size
   
   return <>{tufts}</>;
 };
@@ -95,33 +150,93 @@ const GrassTuft = ({ position, color, scale }: { position: [number, number, numb
   );
 };
 
+// TreeDecorations component - adds trees around the field
+const TreeDecorations = ({ size }: { size: [number, number] }) => {
+  const [width, height] = size;
+  
+  // Use useMemo to create a stable set of trees
+  const trees = useMemo(() => {
+    const items = [];
+    const seedValue = width * 137 + height * 547;
+    
+    // Add trees in strategic locations
+    for (let i = 0; i < 20; i++) {
+      // Deterministic positions based on a seed
+      const seed = (seedValue + i * 123) % 1000 / 1000;
+      const seed2 = (seedValue + i * 456) % 1000 / 1000;
+      
+      // Position trees around the perimeter with some variation
+      let x, z;
+      
+      if (i % 4 === 0) {
+        // Top edge
+        x = (seed * 2 - 1) * (width/2 + 1);
+        z = -height/2 - 1 - seed2 * 3;
+      } else if (i % 4 === 1) {
+        // Right edge
+        x = width/2 + 1 + seed2 * 3;
+        z = (seed * 2 - 1) * (height/2 + 1);
+      } else if (i % 4 === 2) {
+        // Bottom edge
+        x = (seed * 2 - 1) * (width/2 + 1);
+        z = height/2 + 1 + seed2 * 3;
+      } else {
+        // Left edge
+        x = -width/2 - 1 - seed2 * 3;
+        z = (seed * 2 - 1) * (height/2 + 1);
+      }
+      
+      // Vary tree type, scale and exact position slightly
+      const treeType = Math.floor(seed * 3);
+      const treeScale = 0.7 + seed2 * 0.6;
+      
+      items.push(
+        <Tree 
+          key={`tree-${i}`}
+          position={[x, 0, z]} 
+          scale={treeScale}
+          type={treeType}
+        />
+      );
+    }
+    
+    return items;
+  }, [width, height]);
+  
+  return <>{trees}</>;
+};
+
 // Componente para decorações (flores, pedras, etc)
 const Decorations = ({ size }: { size: [number, number] }) => {
   const [width, height] = size;
-  const [decorations, setDecorations] = useState<JSX.Element[]>([]);
   
-  // Gerar decorações uma única vez na montagem
-  useEffect(() => {
-    const items: JSX.Element[] = [];
+  // Generate decorations deterministically with useMemo
+  const decorations = useMemo(() => {
+    const items = [];
+    const seedValue = width * 73 + height * 31;
     
-    // Posicionar algumas flores aleatórias em volta do terreno
+    // Position some flowers around the terrain
     for (let i = 0; i < 15; i++) {
-      const x = (Math.random() - 0.5) * (width + 2);
-      const z = (Math.random() - 0.5) * (height + 2);
+      // Deterministic positions based on a seed
+      const seed = (seedValue + i * 237) % 1000 / 1000;
+      const seed2 = (seedValue + i * 721) % 1000 / 1000;
       
-      // Apenas colocar decorações fora da área de plantio
+      const x = (seed * 2 - 1) * (width/2 + 1);
+      const z = (seed2 * 2 - 1) * (height/2 + 1);
+      
+      // Only place decorations outside the planting area
       if (Math.abs(x) > width/2 - 1 || Math.abs(z) > height/2 - 1) {
         items.push(
           <FlowerDecoration 
             key={`flower-${i}`}
             position={[x, 0, z]} 
-            type={Math.floor(Math.random() * 3)}
+            type={Math.floor(seed * seed2 * 3)}
           />
         );
       }
     }
     
-    setDecorations(items);
+    return items;
   }, [width, height]);
   
   return <>{decorations}</>;
@@ -178,20 +293,28 @@ const PlotMesh = ({
     }
   });
   
+  // New simplified direct planting handler
+  const handlePlotClick = () => {
+    if (plot.growthStage === 'ready') {
+      // If crop is ready, harvest it
+      console.log("Harvesting crop from plot:", plot.id);
+      onHarvest();
+    } else if (plot.growthStage === 'empty') {
+      // If empty, plant directly
+      console.log("Planting on plot:", plot.id);
+      onPlant();
+    } else {
+      // Just select growing plots
+      onSelect();
+    }
+  };
+  
   return (
     <group position={position}>
       {/* Terra lavrada */}
       <mesh 
         position={[0, -0.05, 0]} 
-        onClick={() => {
-          if (plot.growthStage === 'ready') {
-            onHarvest();
-          } else if (plot.growthStage === 'empty') {
-            onSelect(); // Select first, then user can choose to plant
-          } else {
-            onSelect(); // Just select growing plots
-          }
-        }}
+        onClick={handlePlotClick}
         receiveShadow
       >
         <boxGeometry args={[0.9, 0.1, 0.9]} />
@@ -281,6 +404,9 @@ const IsometricFarm = ({ plots, onSelectPlot, onPlantCrop, onHarvestCrop }: Isom
       {/* Decorações */}
       <Decorations size={groundSize} />
       
+      {/* Trees */}
+      <TreeDecorations size={groundSize} />
+      
       {/* Grid de terrenos */}
       {plots.map((plot) => (
         <PlotMesh 
@@ -310,37 +436,43 @@ const IsometricFarm = ({ plots, onSelectPlot, onPlantCrop, onHarvestCrop }: Isom
 // Componente para a cerca em volta da fazenda
 const Fence = ({ width, height, offset }: { width: number, height: number, offset: [number, number, number] }) => {
   const [offsetX, offsetY, offsetZ] = offset;
-  const posts = [];
   
-  // Postes horizontais (eixo X)
-  for (let x = 0; x <= width; x++) {
-    posts.push(
-      <FencePost 
-        key={`fence-x-top-${x}`} 
-        position={[offsetX + x, 0, offsetZ - 0.5]} 
-      />,
-      <FencePost 
-        key={`fence-x-bottom-${x}`} 
-        position={[offsetX + x, 0, offsetZ + height + 0.5]} 
-      />
-    );
-  }
-  
-  // Postes verticais (eixo Z)
-  for (let z = 0; z <= height; z++) {
-    posts.push(
-      <FencePost 
-        key={`fence-z-left-${z}`} 
-        position={[offsetX - 0.5, 0, offsetZ + z]} 
-        rotation={[0, Math.PI/2, 0]}
-      />,
-      <FencePost 
-        key={`fence-z-right-${z}`} 
-        position={[offsetX + width + 0.5, 0, offsetZ + z]} 
-        rotation={[0, Math.PI/2, 0]}
-      />
-    );
-  }
+  // Generate fence posts deterministically with useMemo
+  const posts = useMemo(() => {
+    const fencePosts = [];
+    
+    // Postes horizontais (eixo X)
+    for (let x = 0; x <= width; x++) {
+      fencePosts.push(
+        <FencePost 
+          key={`fence-x-top-${x}`} 
+          position={[offsetX + x, 0, offsetZ - 0.5]} 
+        />,
+        <FencePost 
+          key={`fence-x-bottom-${x}`} 
+          position={[offsetX + x, 0, offsetZ + height + 0.5]} 
+        />
+      );
+    }
+    
+    // Postes verticais (eixo Z)
+    for (let z = 0; z <= height; z++) {
+      fencePosts.push(
+        <FencePost 
+          key={`fence-z-left-${z}`} 
+          position={[offsetX - 0.5, 0, offsetZ + z]} 
+          rotation={[0, Math.PI/2, 0]}
+        />,
+        <FencePost 
+          key={`fence-z-right-${z}`} 
+          position={[offsetX + width + 0.5, 0, offsetZ + z]} 
+          rotation={[0, Math.PI/2, 0]}
+        />
+      );
+    }
+    
+    return fencePosts;
+  }, [width, height, offsetX, offsetY, offsetZ]);
   
   return <>{posts}</>;
 };

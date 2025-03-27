@@ -56,31 +56,49 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       };
       
     case 'PLANT_CROP': {
+      console.log("PLANT_CROP action received:", action);
+      console.log("Current state:", state);
+      
+      // Safety check - ensure we have a crop to plant
+      if (!action.crop) {
+        console.error("No crop provided to PLANT_CROP action");
+        return state;
+      }
+      
       // Check if we have the crop in inventory
       const inventoryItem = state.inventory.find(item => item.crop.id === action.crop.id);
       if (!inventoryItem || inventoryItem.quantity <= 0) {
+        console.error("Crop not in inventory or quantity is 0:", action.crop.id);
         return state;
       }
       
       // Check if the crop can be planted in the current season
       if (!canPlantInSeason(action.crop, state.currentSeason)) {
+        console.error("Crop cannot be planted in current season:", state.currentSeason);
         return state;
       }
       
       // Check if the crop is unlocked - ensure unlockedCrops exists
       if (!(state.unlockedCrops || []).includes(action.crop.id)) {
+        console.error("Crop is not unlocked:", action.crop.id);
         return state;
       }
       
       // Find the plot
       const plot = state.plots.find(p => p.id === action.plotId);
+      
       // If plot is already occupied or doesn't exist, don't plant
-      if (!plot || plot.crop) {
-        console.log("Plot already occupied or not found:", plot);
+      if (!plot) {
+        console.error("Plot not found:", action.plotId);
         return state;
       }
       
-      // Debug log to help identify issues
+      if (plot.crop) {
+        console.error("Plot already occupied:", plot);
+        return state;
+      }
+      
+      // Log successful planting
       console.log("Planting crop:", action.crop.name, "in plot:", action.plotId);
       
       // Update inventory - only decrement by 1
@@ -102,6 +120,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           : p
       );
       
+      // Create the new state
       const newState = {
         ...state,
         plots: updatedPlots,
@@ -109,7 +128,10 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         selectedPlot: null // Deselect plot after planting
       };
       
+      // Save the game state
+      console.log("Saving new state after planting");
       saveGame(newState);
+      
       return newState;
     }
     
@@ -157,11 +179,13 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       // Find the plot
       const plot = state.plots.find(p => p.id === action.plotId);
       if (!plot || !plot.crop || plot.growthStage !== 'ready') {
+        console.error("Cannot harvest: plot not found, no crop, or not ready:", action.plotId);
         return state;
       }
       
       // Calculate earnings
       const earnings = plot.crop.yield;
+      console.log("Harvesting crop:", plot.crop.name, "for", earnings, "coins");
       
       // Update plots
       const updatedPlots = state.plots.map(p => 
