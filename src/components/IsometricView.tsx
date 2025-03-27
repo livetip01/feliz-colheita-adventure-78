@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
@@ -8,6 +7,8 @@ import * as THREE from 'three';
 interface IsometricViewProps {
   plots: PlotState[];
   onSelectPlot: (id: string) => void;
+  onPlantCrop: (id: string) => void;
+  onHarvestCrop: (id: string) => void;
 }
 
 // Componente para o terreno base (grama)
@@ -84,9 +85,17 @@ const FlowerDecoration = ({ position, type }: { position: [number, number, numbe
   );
 };
 
-const PlotMesh = ({ plot, onSelect, position }: { 
+const PlotMesh = ({ 
+  plot, 
+  onSelect,
+  onPlant,
+  onHarvest,
+  position 
+}: { 
   plot: PlotState; 
   onSelect: () => void;
+  onPlant: () => void;
+  onHarvest: () => void;
   position: [number, number, number];
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -114,7 +123,15 @@ const PlotMesh = ({ plot, onSelect, position }: {
       {/* Terra lavrada */}
       <mesh 
         position={[0, -0.05, 0]} 
-        onClick={onSelect}
+        onClick={() => {
+          if (plot.growthStage === 'ready') {
+            onHarvest();
+          } else if (plot.growthStage === 'empty') {
+            onSelect(); // Select first, then user can choose to plant
+          } else {
+            onSelect(); // Just select growing plots
+          }
+        }}
         receiveShadow
       >
         <boxGeometry args={[0.9, 0.1, 0.9]} />
@@ -175,7 +192,7 @@ const PlotMesh = ({ plot, onSelect, position }: {
   );
 };
 
-const IsometricFarm = ({ plots, onSelectPlot }: IsometricViewProps) => {
+const IsometricFarm = ({ plots, onSelectPlot, onPlantCrop, onHarvestCrop }: IsometricViewProps) => {
   // Encontrar as dimensões da fazenda
   const maxRow = Math.max(...plots.map(p => p.position.y));
   const maxCol = Math.max(...plots.map(p => p.position.x));
@@ -209,7 +226,9 @@ const IsometricFarm = ({ plots, onSelectPlot }: IsometricViewProps) => {
         <PlotMesh 
           key={plot.id} 
           plot={plot} 
-          onSelect={() => onSelectPlot(plot.id)} 
+          onSelect={() => onSelectPlot(plot.id)}
+          onPlant={() => onPlantCrop(plot.id)}
+          onHarvest={() => onHarvestCrop(plot.id)}
           position={[
             plot.position.x - maxCol/2, 
             0, 
@@ -289,7 +308,7 @@ const FencePost = ({ position, rotation = [0, 0, 0] }: { position: [number, numb
   );
 };
 
-const IsometricView: React.FC<IsometricViewProps> = ({ plots, onSelectPlot }) => {
+const IsometricView: React.FC<IsometricViewProps> = ({ plots, onSelectPlot, onPlantCrop, onHarvestCrop }) => {
   return (
     <div className="w-full h-[500px] rounded-lg overflow-hidden">
       <Canvas 
@@ -305,7 +324,12 @@ const IsometricView: React.FC<IsometricViewProps> = ({ plots, onSelectPlot }) =>
           minDistance={5}
           maxDistance={15}
         />
-        <IsometricFarm plots={plots} onSelectPlot={onSelectPlot} />
+        <IsometricFarm 
+          plots={plots} 
+          onSelectPlot={onSelectPlot} 
+          onPlantCrop={onPlantCrop} 
+          onHarvestCrop={onHarvestCrop}
+        />
       </Canvas>
     </div>
   );
