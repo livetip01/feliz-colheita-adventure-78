@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, Sky, Clouds, Cloud } from '@react-three/drei';
@@ -751,4 +752,387 @@ const FencePost = ({ position, scale = 1, rotation = 0 }: {
     <group position={position} scale={scale} rotation={[0, rotation, 0]}>
       {/* Fence post */}
       <mesh position={[0, 0.5, 0]} castShadow>
-        <boxGeometry args={[0.2,
+        <boxGeometry args={[0.2, 1, 0.2]} />
+        <meshStandardMaterial color="#8B4513" />
+      </mesh>
+    </group>
+  );
+};
+
+// FenceRail component - horizontal rail connecting fence posts
+const FenceRail = ({ 
+  start, 
+  end, 
+  height = 0.7,
+  thickness = 0.1 
+}: { 
+  start: [number, number, number], 
+  end: [number, number, number],
+  height?: number,
+  thickness?: number
+}) => {
+  // Calculate position and rotation
+  const midX = (start[0] + end[0]) / 2;
+  const midZ = (start[2] + end[2]) / 2;
+  
+  // Calculate length and angle
+  const dx = end[0] - start[0];
+  const dz = end[2] - start[2];
+  const length = Math.sqrt(dx * dx + dz * dz);
+  const angle = Math.atan2(dz, dx);
+  
+  return (
+    <group position={[midX, height, midZ]} rotation={[0, angle, 0]}>
+      <mesh castShadow>
+        <boxGeometry args={[length, thickness, thickness]} />
+        <meshStandardMaterial color="#A0522D" />
+      </mesh>
+    </group>
+  );
+};
+
+// Fence component - creates a fence around the perimeter of the farm
+const Fence = ({ width, height, offset = [0, 0, 0] }: { 
+  width: number, 
+  height: number, 
+  offset?: [number, number, number] 
+}) => {
+  const [offsetX, offsetY, offsetZ] = offset;
+  
+  // Generate fence posts deterministically with useMemo
+  const fenceElements = useMemo(() => {
+    const elements = [];
+    const postSpacing = 2; // Space between posts
+    
+    // Number of posts on each side
+    const numPostsX = Math.ceil(width / postSpacing) + 1;
+    const numPostsZ = Math.ceil(height / postSpacing) + 1;
+    
+    // Half dimensions for centering
+    const halfWidth = width / 2;
+    const halfHeight = height / 2;
+    
+    // Posts and rails along X axis (top and bottom of field)
+    for (let i = 0; i < numPostsX; i++) {
+      const x = -halfWidth + i * postSpacing;
+      
+      // Top fence
+      elements.push(
+        <FencePost 
+          key={`post-top-${i}`}
+          position={[x + offsetX, offsetY, -halfHeight + offsetZ]} 
+        />
+      );
+      
+      // Bottom fence
+      elements.push(
+        <FencePost 
+          key={`post-bottom-${i}`}
+          position={[x + offsetX, offsetY, halfHeight + offsetZ]} 
+        />
+      );
+      
+      // Rails (except last post)
+      if (i < numPostsX - 1) {
+        // Top rails
+        elements.push(
+          <FenceRail 
+            key={`rail-top-${i}`}
+            start={[x + offsetX, offsetY, -halfHeight + offsetZ]}
+            end={[x + postSpacing + offsetX, offsetY, -halfHeight + offsetZ]}
+          />
+        );
+        
+        // Second rail a bit higher
+        elements.push(
+          <FenceRail 
+            key={`rail-top-high-${i}`}
+            start={[x + offsetX, offsetY, -halfHeight + offsetZ]}
+            end={[x + postSpacing + offsetX, offsetY, -halfHeight + offsetZ]}
+            height={0.3}
+          />
+        );
+        
+        // Bottom rails
+        elements.push(
+          <FenceRail 
+            key={`rail-bottom-${i}`}
+            start={[x + offsetX, offsetY, halfHeight + offsetZ]}
+            end={[x + postSpacing + offsetX, offsetY, halfHeight + offsetZ]}
+          />
+        );
+        
+        // Second rail a bit higher
+        elements.push(
+          <FenceRail 
+            key={`rail-bottom-high-${i}`}
+            start={[x + offsetX, offsetY, halfHeight + offsetZ]}
+            end={[x + postSpacing + offsetX, offsetY, halfHeight + offsetZ]}
+            height={0.3}
+          />
+        );
+      }
+    }
+    
+    // Posts and rails along Z axis (left and right of field)
+    for (let i = 0; i < numPostsZ; i++) {
+      const z = -halfHeight + i * postSpacing;
+      
+      // Skip corners to avoid duplicates (already added in X axis loop)
+      if (i > 0 && i < numPostsZ - 1) {
+        // Left fence
+        elements.push(
+          <FencePost 
+            key={`post-left-${i}`}
+            position={[-halfWidth + offsetX, offsetY, z + offsetZ]} 
+          />
+        );
+        
+        // Right fence
+        elements.push(
+          <FencePost 
+            key={`post-right-${i}`}
+            position={[halfWidth + offsetX, offsetY, z + offsetZ]} 
+          />
+        );
+      }
+      
+      // Rails (except last post)
+      if (i < numPostsZ - 1) {
+        // Left rails
+        elements.push(
+          <FenceRail 
+            key={`rail-left-${i}`}
+            start={[-halfWidth + offsetX, offsetY, z + offsetZ]}
+            end={[-halfWidth + offsetX, offsetY, z + postSpacing + offsetZ]}
+          />
+        );
+        
+        // Second rail a bit higher
+        elements.push(
+          <FenceRail 
+            key={`rail-left-high-${i}`}
+            start={[-halfWidth + offsetX, offsetY, z + offsetZ]}
+            end={[-halfWidth + offsetX, offsetY, z + postSpacing + offsetZ]}
+            height={0.3}
+          />
+        );
+        
+        // Right rails
+        elements.push(
+          <FenceRail 
+            key={`rail-right-${i}`}
+            start={[halfWidth + offsetX, offsetY, z + offsetZ]}
+            end={[halfWidth + offsetX, offsetY, z + postSpacing + offsetZ]}
+          />
+        );
+        
+        // Second rail a bit higher
+        elements.push(
+          <FenceRail 
+            key={`rail-right-high-${i}`}
+            start={[halfWidth + offsetX, offsetY, z + offsetZ]}
+            end={[halfWidth + offsetX, offsetY, z + postSpacing + offsetZ]}
+            height={0.3}
+          />
+        );
+      }
+    }
+    
+    return elements;
+  }, [width, height, offset]);
+  
+  return <>{fenceElements}</>;
+};
+
+// Plot component for 3D farm plots 
+const Plot = ({ 
+  plot,
+  onSelect,
+  onHarvest,
+  scale = 1
+}: { 
+  plot: PlotState;
+  onSelect: () => void;
+  onHarvest: () => void;
+  scale?: number;
+}) => {
+  // Reference to the mesh for interaction
+  const meshRef = useRef<THREE.Mesh>(null);
+  const [hovered, setHovered] = useState(false);
+  
+  // Set cursor and handle hovering
+  useEffect(() => {
+    document.body.style.cursor = hovered ? 'pointer' : 'auto';
+    return () => {
+      document.body.style.cursor = 'auto';
+    };
+  }, [hovered]);
+  
+  // Plot color based on state
+  const getPlotColor = () => {
+    if (!plot.crop) return "#D2B48C"; // Empty plot - tan color
+    
+    if (plot.growthStage === 'ready') {
+      return "#7CFC00"; // Light green for ready crops
+    }
+    
+    return "#8B4513"; // Brown for growing crops
+  };
+  
+  // Plot height based on growth
+  const getPlotHeight = () => {
+    if (!plot.crop) return 0.1;
+    
+    if (plot.growthStage === 'ready') {
+      return 0.3; // Taller for ready crops
+    }
+    
+    return 0.15; // Medium for growing crops
+  };
+  
+  // Return 3D plot with appropriate UI based on state
+  return (
+    <group 
+      position={[plot.position.x * 2, 0, plot.position.y * 2]} 
+      scale={scale}
+    >
+      {/* Base plot - soil */}
+      <mesh
+        ref={meshRef}
+        position={[0, getPlotHeight() / 2, 0]}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+        onClick={onSelect}
+        receiveShadow
+        castShadow
+      >
+        <boxGeometry args={[1.8, getPlotHeight(), 1.8]} />
+        <meshStandardMaterial 
+          color={getPlotColor()} 
+          roughness={0.8}
+        />
+      </mesh>
+      
+      {/* Crop representation */}
+      {plot.crop && (
+        <Html position={[0, 0.8, 0]} center sprite>
+          <div 
+            className={`text-3xl transition-all duration-300 ${hovered ? 'scale-125' : 'scale-100'}`}
+            onClick={plot.growthStage === 'ready' ? onHarvest : onSelect}
+          >
+            {plot.crop.image}
+          </div>
+        </Html>
+      )}
+      
+      {/* Plot ID or growth progress indicator for debugging */}
+      {/*
+      <Html position={[0, -0.2, 0]} center sprite>
+        <div className="text-xs bg-black/50 text-white px-1 rounded">
+          {plot.id}
+        </div>
+      </Html>
+      */}
+    </group>
+  );
+};
+
+// Main IsometricView component
+const IsometricView: React.FC<IsometricViewProps> = ({ 
+  plots, 
+  onSelectPlot, 
+  onPlantCrop, 
+  onHarvestCrop,
+  dayProgress = 50,
+  isRainyDay = false
+}) => {
+  const [time, setTime] = useState(Date.now());
+  
+  // Update time for growth calculations
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(Date.now());
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, []);
+  
+  // Camera controls for scene
+  const CameraControls = () => {
+    const { camera } = useThree();
+    
+    useEffect(() => {
+      // Set initial camera position
+      camera.position.set(15, 15, 15);
+      camera.lookAt(0, 0, 0);
+    }, [camera]);
+    
+    return null;
+  };
+  
+  // Calculate grid dimensions from plots
+  const gridDimensions = useMemo(() => {
+    let maxX = 0;
+    let maxY = 0;
+    
+    plots.forEach(plot => {
+      maxX = Math.max(maxX, plot.position.x);
+      maxY = Math.max(maxY, plot.position.y);
+    });
+    
+    return { 
+      width: (maxX + 1) * 2, 
+      height: (maxY + 1) * 2,
+      offsetX: 0,
+      offsetZ: 0
+    };
+  }, [plots]);
+  
+  return (
+    <Canvas shadows camera={{ position: [15, 15, 15], fov: 50 }}>
+      <CameraControls />
+      
+      {/* Environment */}
+      <Environment 
+        dayProgress={dayProgress}
+        isRainyDay={isRainyDay}
+      />
+      
+      {/* Landscape elements */}
+      <Ground size={[gridDimensions.width + 5, gridDimensions.height + 5]} />
+      <Mountains />
+      <DistantHouses />
+      <GrassTufts farmSize={[gridDimensions.width, gridDimensions.height]} />
+      <TreeDecorations size={[gridDimensions.width, gridDimensions.height]} />
+      
+      {/* Fence around the farm */}
+      <Fence 
+        width={gridDimensions.width + 1} 
+        height={gridDimensions.height + 1} 
+      />
+      
+      {/* Plot components */}
+      {plots.map(plot => (
+        <Plot
+          key={plot.id}
+          plot={plot}
+          onSelect={() => onSelectPlot(plot.id)}
+          onHarvest={() => onHarvestCrop(plot.id)}
+        />
+      ))}
+      
+      {/* Controls with limited movement */}
+      <OrbitControls 
+        enableZoom={true}
+        enablePan={false}
+        minPolarAngle={Math.PI / 6}
+        maxPolarAngle={Math.PI / 2.5}
+        maxDistance={50}
+        minDistance={10}
+      />
+    </Canvas>
+  );
+};
+
+export default IsometricView;
