@@ -49,7 +49,7 @@ const PlotGrid: React.FC<PlotGridProps> = ({
               >
                 <Plot
                   plot={plot}
-                  isSelected={plot.id === selectedPlotId}
+                  selected={plot.id === selectedPlotId}
                   onSelect={() => onSelectPlot(plot.id)}
                   onPlant={() => onPlantCrop(plot.id)}
                   onHarvest={() => onHarvestCrop(plot.id)}
