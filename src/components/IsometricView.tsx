@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, Sky, Clouds, Cloud } from '@react-three/drei';
 import { PlotState } from '../types/game';
 import * as THREE from 'three';
+import { Fence as FenceIcon } from 'lucide-react';
 
 interface IsometricViewProps {
   plots: PlotState[];
@@ -740,15 +741,14 @@ const Environment = ({ dayProgress, isRainyDay = false }: { dayProgress: number,
   );
 };
 
-// Fence component - fixed positioning to ensure it's properly on the ground
-const Fence = ({ width, height, offset }: { width: number, height: number, offset: [number, number, number] }) => {
-  const [offsetX, offsetY, offsetZ] = offset;
-  
-  // Generate fence posts deterministically with useMemo
-  const posts = useMemo(() => {
-    const fencePosts = [];
-    
-    // Posts along X axis (top and bottom of field)
-    for (let x = 0; x <= width; x++) {
-      fencePosts.push(
-        <FencePost
+// FencePost component - individual fence post for the fence
+const FencePost = ({ position, scale = 1, rotation = 0 }: { 
+  position: [number, number, number], 
+  scale?: number, 
+  rotation?: number 
+}) => {
+  return (
+    <group position={position} scale={scale} rotation={[0, rotation, 0]}>
+      {/* Fence post */}
+      <mesh position={[0, 0.5, 0]} castShadow>
+        <boxGeometry args={[0.2,
