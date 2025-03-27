@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, Sky, Clouds, Cloud } from '@react-three/drei';
@@ -351,64 +350,109 @@ const TreeDecorations = ({ size }: { size: [number, number] }) => {
   return <>{trees}</>;
 };
 
-// Enhanced Environment component for day/night cycle that syncs with game time
-const Environment = ({ dayProgress }: { dayProgress: number }) => {
-  // Time periods in a day based on dayProgress (0-100)
-  //  0-15: Early Morning (2am-5am)
-  // 15-25: Dawn (5am-7am)
-  // 25-60: Day (7am-5pm)
-  // 60-75: Sunset (5pm-8pm)
-  // 75-100: Night (8pm-2am)
+// Smoother sun movement with continuous animation
+const SunTracker = ({ dayProgress }: { dayProgress: number }) => {
+  const sunRef = useRef<THREE.DirectionalLight>(null);
+  const lastDayProgress = useRef(dayProgress);
   
-  // Calculate sun position with many more increments for smooth movement
-  const sunPosition = useMemo(() => {
-    // Use an interpolation function for smooth transitions
-    const interpolate = (start: number, end: number, factor: number) => {
-      return start + (end - start) * factor;
-    };
+  // Interpolation function for smooth transitions
+  const interpolate = (start: number, end: number, factor: number) => {
+    return start + (end - start) * factor;
+  };
+  
+  useFrame(() => {
+    if (!sunRef.current) return;
     
-    // Map dayProgress to a continuous angle (0-360 degrees)
-    const fullCircle = Math.PI * 2;
-    let angle, height, distance = 100;
+    // Calculate target position (same logic as before)
+    const distance = 100;
+    let targetAngle, targetHeight;
     
     // Early morning (0-15%)
     if (dayProgress < 15) {
       const progress = dayProgress / 15;
-      angle = Math.PI + (progress * (Math.PI * 0.2));
-      height = interpolate(-5, 1, progress);
+      targetAngle = Math.PI + (progress * (Math.PI * 0.2));
+      targetHeight = interpolate(-5, 1, progress);
     }
     // Dawn (15-25%)
     else if (dayProgress < 25) {
       const progress = (dayProgress - 15) / 10;
-      angle = Math.PI * 1.2 - progress * (Math.PI * 0.2);
-      height = interpolate(1, 30, progress);
+      targetAngle = Math.PI * 1.2 - progress * (Math.PI * 0.2);
+      targetHeight = interpolate(1, 30, progress);
     }
     // Day (25-60%)
     else if (dayProgress < 60) {
       const progress = (dayProgress - 25) / 35;
-      angle = Math.PI - progress * Math.PI;
-      height = 30 + Math.sin(progress * Math.PI) * 30; // Smooth arc during the day
+      targetAngle = Math.PI - progress * Math.PI;
+      targetHeight = 30 + Math.sin(progress * Math.PI) * 30;
     }
     // Sunset (60-75%)
     else if (dayProgress < 75) {
       const progress = (dayProgress - 60) / 15;
-      angle = progress * (Math.PI * 0.2);
-      height = interpolate(30, -5, progress);
+      targetAngle = progress * (Math.PI * 0.2);
+      targetHeight = interpolate(30, -5, progress);
     }
     // Night (75-100%)
     else {
       const progress = (dayProgress - 75) / 25;
-      angle = Math.PI * 0.2 + progress * (Math.PI * 0.8);
-      height = -5; // Below horizon
+      targetAngle = Math.PI * 0.2 + progress * (Math.PI * 0.8);
+      targetHeight = -5; // Below horizon
     }
     
-    return [
-      Math.sin(angle) * distance,
-      height,
-      Math.cos(angle) * distance
-    ] as [number, number, number];
+    // Calculate target position
+    const targetX = Math.sin(targetAngle) * distance;
+    const targetZ = Math.cos(targetAngle) * distance;
+    
+    // Get current position
+    const currentX = sunRef.current.position.x;
+    const currentY = sunRef.current.position.y;
+    const currentZ = sunRef.current.position.z;
+    
+    // Smooth interpolation (lerp) for continuous movement
+    // Using a very small step for ultra-smooth movement
+    const step = 0.01;
+    
+    sunRef.current.position.x = currentX + (targetX - currentX) * step;
+    sunRef.current.position.y = currentY + (targetHeight - currentY) * step;
+    sunRef.current.position.z = currentZ + (targetZ - currentZ) * step;
+    
+    lastDayProgress.current = dayProgress;
+  });
+  
+  // Calculate directional light intensity
+  const directionalIntensity = useMemo(() => {
+    if (dayProgress < 15) {
+      // Early morning: gradually increasing from 0
+      return (dayProgress / 15) * 0.2;
+    } else if (dayProgress < 25) {
+      // Dawn: continuing to increase
+      return 0.2 + ((dayProgress - 15) / 10) * 0.6;
+    } else if (dayProgress < 60) {
+      // Day: full intensity with subtle variations
+      const progress = (dayProgress - 25) / 35;
+      return 0.8 + Math.sin(progress * Math.PI) * 0.2;
+    } else if (dayProgress < 75) {
+      // Sunset: decreasing
+      return 0.8 - ((dayProgress - 60) / 15) * 0.8;
+    } else {
+      // Night: no directional light
+      return 0;
+    }
   }, [dayProgress]);
   
+  return (
+    <directionalLight 
+      ref={sunRef}
+      // Initial position will be updated in useFrame
+      position={[0, 20, 0]} 
+      intensity={directionalIntensity} 
+      castShadow 
+      shadow-mapSize={1024} 
+    />
+  );
+};
+
+// Enhanced Environment component for day/night cycle that syncs with game time
+const Environment = ({ dayProgress }: { dayProgress: number }) => {
   // Calculate ambient light intensity based on time of day with smoother transitions
   const ambientIntensity = useMemo(() => {
     if (dayProgress < 15) {
@@ -427,27 +471,6 @@ const Environment = ({ dayProgress }: { dayProgress: number }) => {
     } else {
       // Night: dim to very dim light
       return 0.2 - ((dayProgress - 75) / 25) * 0.15;
-    }
-  }, [dayProgress]);
-  
-  // Calculate directional light intensity with smoother transitions
-  const directionalIntensity = useMemo(() => {
-    if (dayProgress < 15) {
-      // Early morning: gradually increasing from 0
-      return (dayProgress / 15) * 0.2;
-    } else if (dayProgress < 25) {
-      // Dawn: continuing to increase
-      return 0.2 + ((dayProgress - 15) / 10) * 0.6;
-    } else if (dayProgress < 60) {
-      // Day: full intensity with subtle variations
-      const progress = (dayProgress - 25) / 35;
-      return 0.8 + Math.sin(progress * Math.PI) * 0.2;
-    } else if (dayProgress < 75) {
-      // Sunset: decreasing
-      return 0.8 - ((dayProgress - 60) / 15) * 0.8;
-    } else {
-      // Night: no directional light
-      return 0;
     }
   }, [dayProgress]);
   
@@ -566,13 +589,8 @@ const Environment = ({ dayProgress }: { dayProgress: number }) => {
       {/* Dynamic sky */}
       <color attach="background" args={[skyColor]} />
       
-      {/* Sun/Moon */}
-      <directionalLight 
-        position={sunPosition} 
-        intensity={directionalIntensity} 
-        castShadow 
-        shadow-mapSize={1024} 
-      />
+      {/* Sun/Moon - using the SunTracker component for smooth movement */}
+      <SunTracker dayProgress={dayProgress} />
       
       {/* Ambient light */}
       <ambientLight intensity={ambientIntensity} />
@@ -583,7 +601,7 @@ const Environment = ({ dayProgress }: { dayProgress: number }) => {
   );
 };
 
-// Fence component - updated to ensure it's on the ground
+// Fence component - fixed positioning to ensure it's properly on the ground
 const Fence = ({ width, height, offset }: { width: number, height: number, offset: [number, number, number] }) => {
   const [offsetX, offsetY, offsetZ] = offset;
   
@@ -627,17 +645,17 @@ const Fence = ({ width, height, offset }: { width: number, height: number, offse
   return <>{posts}</>;
 };
 
-// Fence post component - updated to ensure it's on the ground
+// Fence post component - restored proper positioning to ensure it's firmly on the ground
 const FencePost = ({ position, rotation = [0, 0, 0] }: { position: [number, number, number], rotation?: [number, number, number] }) => {
   return (
     <group position={position} rotation={rotation}>
-      {/* Vertical post - lowered slightly to ensure it's firmly on the ground */}
+      {/* Vertical post */}
       <mesh position={[0, 0.4, 0]} castShadow>
         <boxGeometry args={[0.1, 0.8, 0.1]} />
         <meshStandardMaterial color="#8B4513" />
       </mesh>
       
-      {/* Horizontal crossbars - adjusted positions */}
+      {/* Horizontal crossbars */}
       <mesh position={[0, 0.25, 0]} castShadow>
         <boxGeometry args={[1, 0.05, 0.05]} />
         <meshStandardMaterial color="#A0522D" />
@@ -754,143 +772,3 @@ const PlotMesh = ({
             castShadow
           >
             <boxGeometry args={[0.15, height, 0.15]} />
-            <meshStandardMaterial color="#228B22" />
-          </mesh>
-          
-          {/* Plant leaves - change based on growth percentage */}
-          {plot.growthStage === 'growing' && (
-            <>
-              {growthPercentage < 33 && (
-                // Small seedling: two tiny leaves
-                <mesh position={[0, height, 0]} rotation={[0, 0, 0]}>
-                  <boxGeometry args={[0.2, 0.02, 0.1]} />
-                  <meshStandardMaterial color="#32CD32" />
-                </mesh>
-              )}
-              
-              {growthPercentage >= 33 && growthPercentage < 66 && (
-                // Medium stage: more leaves, slightly larger
-                <>
-                  <mesh position={[0.1, height-0.1, 0]} rotation={[0, 0, Math.PI/6]}>
-                    <boxGeometry args={[0.25, 0.02, 0.12]} />
-                    <meshStandardMaterial color="#32CD32" />
-                  </mesh>
-                  <mesh position={[-0.1, height-0.15, 0]} rotation={[0, 0, -Math.PI/6]}>
-                    <boxGeometry args={[0.25, 0.02, 0.12]} />
-                    <meshStandardMaterial color="#32CD32" />
-                  </mesh>
-                </>
-              )}
-              
-              {growthPercentage >= 66 && (
-                // Almost mature: full set of leaves
-                <>
-                  <mesh position={[0.1, height-0.1, 0.1]} rotation={[0, 0, Math.PI/6]}>
-                    <boxGeometry args={[0.3, 0.03, 0.15]} />
-                    <meshStandardMaterial color="#32CD32" />
-                  </mesh>
-                  <mesh position={[-0.1, height-0.15, -0.05]} rotation={[0, 0, -Math.PI/6]}>
-                    <boxGeometry args={[0.3, 0.03, 0.15]} />
-                    <meshStandardMaterial color="#32CD32" />
-                  </mesh>
-                  <mesh position={[0, height-0.05, -0.1]} rotation={[Math.PI/6, 0, 0]}>
-                    <boxGeometry args={[0.2, 0.03, 0.25]} />
-                    <meshStandardMaterial color="#32CD32" />
-                  </mesh>
-                </>
-              )}
-            </>
-          )}
-          
-          {/* Fruit/edible part of the plant */}
-          {plot.growthStage === 'ready' && (
-            <Html position={[0, height + 0.2, 0]} style={{ pointerEvents: 'none', transform: 'translate(-50%, -50%)' }}>
-              <div className="text-2xl" style={{transform: 'scale(1.2)'}}>{plot.crop.image}</div>
-            </Html>
-          )}
-        </>
-      )}
-      
-      {/* Glow light on all plants, but with intensity based on readiness */}
-      <pointLight
-        position={[0, height + 0.5, 0]}
-        intensity={plot.growthStage === 'ready' ? 0.5 : 0.01}
-        distance={1.5}
-        color="#FFFF99"
-      />
-    </group>
-  );
-};
-
-// Main IsometricView component
-const IsometricView: React.FC<IsometricViewProps> = ({ 
-  plots, 
-  onSelectPlot, 
-  onPlantCrop, 
-  onHarvestCrop,
-  dayProgress = 0
-}) => {
-  const currentTime = useMemo(() => Date.now(), []);
-  const gridSize = Math.ceil(Math.sqrt(plots.length));
-  
-  // Calculate farm dimensions
-  const farmSize: [number, number] = [gridSize, gridSize];
-  
-  return (
-    <div className="h-[500px] w-full">
-      <Canvas shadows camera={{ position: [10, 10, 10], fov: 40 }}>
-        <Environment dayProgress={dayProgress} />
-        
-        {/* Controls with limits */}
-        <OrbitControls 
-          enablePan={true}
-          enableZoom={true}
-          enableRotate={true}
-          minDistance={5}
-          maxDistance={50}
-          minPolarAngle={0}
-          maxPolarAngle={Math.PI / 2.5}
-        />
-        
-        {/* Base terrain */}
-        <Ground size={farmSize} />
-        
-        {/* Mountains in the background */}
-        <Mountains />
-        
-        {/* Houses in the distance */}
-        <DistantHouses />
-        
-        {/* Random grass tufts */}
-        <GrassTufts farmSize={farmSize} />
-        
-        {/* Trees around the field */}
-        <TreeDecorations size={farmSize} />
-        
-        {/* Farm boundary fence */}
-        <Fence 
-          width={gridSize} 
-          height={gridSize} 
-          offset={[-gridSize/2, 0, -gridSize/2]} 
-        />
-        
-        {/* Plot grid */}
-        <group position={[-gridSize/2, 0, -gridSize/2]}>
-          {plots.map(plot => (
-            <PlotMesh
-              key={plot.id}
-              plot={plot}
-              position={[plot.position.x, 0, plot.position.y]}
-              onSelect={() => onSelectPlot(plot.id)}
-              onPlant={() => onPlantCrop(plot.id)}
-              onHarvest={() => onHarvestCrop(plot.id)}
-              currentTime={currentTime}
-            />
-          ))}
-        </group>
-      </Canvas>
-    </div>
-  );
-};
-
-export default IsometricView;
