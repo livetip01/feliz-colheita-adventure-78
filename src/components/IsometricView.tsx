@@ -70,8 +70,8 @@ const Tree = ({ position, scale = 1, type = 0 }) => {
 const Ground = ({ size }: { size: [number, number] }) => {
   // Create richer and more detailed grass texture
   const [width, height] = size;
-  const groundWidth = width + 80; // Much larger ground to cover mountains
-  const groundHeight = height + 80; // Much larger ground to cover mountains
+  const groundWidth = width + 120; // Much larger ground to cover mountains
+  const groundHeight = height + 120; // Much larger ground to cover mountains
   
   return (
     <>
@@ -120,27 +120,37 @@ const Mountains = ({ position = [0, 0, 0] as [number, number, number] }) => {
       // Create more natural mountain shape using multiple meshes for a single mountain
       const mountainGroup = (
         <group key={`mountain-${i}`} position={[x, 0, z]}>
-          {/* Main mountain body - smoother cone with more segments */}
+          {/* Main mountain body - Use a smoother shape */}
           <mesh castShadow position={[0, height/2, 0]}>
-            <coneGeometry args={[8 + Math.sin(i * 7) * 2, height, 16]} />
+            <cylinderGeometry args={[0, 8 + Math.sin(i * 7) * 2, height, 16]} />
             <meshStandardMaterial color="#6B8E23" />
           </mesh>
           
-          {/* Secondary peaks for more natural look */}
-          <mesh castShadow position={[2, height * 0.6, 1]}>
-            <coneGeometry args={[3, height * 0.7, 8]} />
-            <meshStandardMaterial color="#556B2F" />
-          </mesh>
-          
-          <mesh castShadow position={[-1.5, height * 0.5, -1]}>
-            <coneGeometry args={[2.5, height * 0.6, 8]} />
-            <meshStandardMaterial color="#556B2F" />
-          </mesh>
+          {/* Add random bumps for more natural look */}
+          {Array.from({ length: 5 }).map((_, j) => {
+            const bumpHeight = height * (0.3 + Math.sin(i * j * 0.5) * 0.2);
+            const bumpRadius = 2 + Math.sin(i * j * 3) * 1;
+            const bumpAngle = j * Math.PI * 2 / 5;
+            const bumpDistance = 3 + Math.sin(i * j) * 2;
+            const bumpX = Math.sin(bumpAngle) * bumpDistance;
+            const bumpZ = Math.cos(bumpAngle) * bumpDistance;
+            
+            return (
+              <mesh 
+                key={`mountain-${i}-bump-${j}`} 
+                position={[bumpX, bumpHeight/2, bumpZ]} 
+                castShadow
+              >
+                <cylinderGeometry args={[0, bumpRadius, bumpHeight, 8]} />
+                <meshStandardMaterial color="#556B2F" />
+              </mesh>
+            );
+          })}
           
           {/* Snow caps on higher mountains */}
           {height > 14 && (
             <mesh position={[0, height * 0.9, 0]}>
-              <coneGeometry args={[3, height * 0.2, 16]} />
+              <cylinderGeometry args={[0, 3, height * 0.2, 16]} />
               <meshStandardMaterial color="#F0F0F0" />
             </mesh>
           )}
@@ -223,27 +233,24 @@ const GrassTufts = ({ farmSize, avoidCenter = true }: { farmSize: [number, numbe
     // Generate a deterministic seed
     const seed = (width * 1000 + height);
     
-    // Determine farm boundaries to avoid
+    // Determine farm boundaries to avoid - increased for better distribution
     const farmBoundary = {
-      minX: -(width/2 + 1),
-      maxX: (width/2 + 1),
-      minZ: -(height/2 + 1),
-      maxZ: (height/2 + 1)
+      minX: -(width/2 + 5),
+      maxX: (width/2 + 5),
+      minZ: -(height/2 + 5),
+      maxZ: (height/2 + 5)
     };
     
     // Generate grass tufts across the field, but outside the farm boundaries
-    for (let i = 0; i < 800; i++) {
+    for (let i = 0; i < 1000; i++) {
       // Use deterministic pseudo-random values
       const pseudoRandom1 = Math.sin(seed * i * 0.57) * 0.5 + 0.5;
       const pseudoRandom2 = Math.cos(seed * i * 0.37) * 0.5 + 0.5;
       
-      // Use a wider range for placement but with more even distribution
-      const range = 50; // larger range
+      // Use a wider range for placement with better distribution
+      const range = 100; // larger range for more spread
       let x = (pseudoRandom1 - 0.5) * range;
       let z = (pseudoRandom2 - 0.5) * range;
-      
-      // Calculate distance from center
-      const distanceFromCenter = Math.sqrt(x*x + z*z);
       
       // Skip if this grass tuft would be inside the farm or too close to it
       if (avoidCenter &&
@@ -252,8 +259,11 @@ const GrassTufts = ({ farmSize, avoidCenter = true }: { farmSize: [number, numbe
         continue;
       }
       
-      // More grass tufts further from the center
-      if (distanceFromCenter < 10 && Math.random() > 0.3) {
+      // Calculate distance from center
+      const distanceFromCenter = Math.sqrt(x*x + z*z);
+      
+      // Distribute grass more evenly - more grass farther from center
+      if (distanceFromCenter < 10 && pseudoRandom1 > 0.3) {
         continue;
       }
       
@@ -757,15 +767,13 @@ const PlotMesh = ({
         </>
       )}
       
-      {/* Glow around ready plants */}
-      {plot.crop && plot.growthStage === 'ready' && (
-        <pointLight
-          position={[0, height + 0.5, 0]}
-          intensity={0.5}
-          distance={1.5}
-          color="#FFFF99"
-        />
-      )}
+      {/* Glow light on all plants, but with intensity based on readiness */}
+      <pointLight
+        position={[0, height + 0.5, 0]}
+        intensity={plot.growthStage === 'ready' ? 0.5 : 0.01}
+        distance={1.5}
+        color="#FFFF99"
+      />
     </group>
   );
 };
@@ -781,7 +789,7 @@ const IsometricFarm = ({
   const maxRow = Math.max(...plots.map(p => p.position.y));
   const maxCol = Math.max(...plots.map(p => p.position.x));
   const farmSize: [number, number] = [maxCol + 1, maxRow + 1];
-  const groundSize: [number, number] = [maxCol + 80, maxRow + 80]; // Much larger ground
+  const groundSize: [number, number] = [maxCol + 120, maxRow + 120]; // Much larger ground
   
   // Get current time for growth calculations
   const currentTime = Date.now();
@@ -837,32 +845,9 @@ const IsometricView: React.FC<IsometricViewProps> = ({
   plots, 
   onSelectPlot, 
   onPlantCrop, 
-  onHarvestCrop 
+  onHarvestCrop,
+  dayProgress
 }) => {
-  // Get current time for animations and day progress
-  const [dayProgress, setDayProgress] = useState(50);
-  
-  // Update day progress based on game time
-  useEffect(() => {
-    const getDayProgress = () => {
-      const now = new Date();
-      const hour = now.getHours();
-      const minute = now.getMinutes();
-      // Map 24h to 0-100%
-      return ((hour * 60 + minute) / (24 * 60)) * 100;
-    };
-    
-    // Update every minute
-    const timer = setInterval(() => {
-      setDayProgress(getDayProgress());
-    }, 60000);
-    
-    // Initial setting
-    setDayProgress(getDayProgress());
-    
-    return () => clearInterval(timer);
-  }, []);
-  
   return (
     <div className="w-full h-[500px] rounded-lg overflow-hidden">
       <Canvas 

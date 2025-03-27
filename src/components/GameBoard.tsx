@@ -1,3 +1,4 @@
+
 import React, { useReducer, useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Grid3X3, Plus } from 'lucide-react';
@@ -286,6 +287,7 @@ const GameBoard: React.FC = () => {
           }}
           onPlantCrop={handlePlantCrop}
           onHarvestCrop={handleHarvestCrop}
+          dayProgress={dayProgress}
         />
       </div>
       
