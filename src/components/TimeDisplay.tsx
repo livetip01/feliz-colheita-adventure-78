@@ -5,6 +5,11 @@ import { Season } from '../types/game';
 import { getSeasonName } from '../lib/game';
 import { Calendar, Clock, Sun } from 'lucide-react';
 import { Progress } from './ui/progress';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TimeDisplayProps {
   currentSeason: Season;
