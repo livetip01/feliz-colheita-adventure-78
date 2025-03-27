@@ -6,7 +6,11 @@ export interface Crop {
   price: number;
   yield: number;
   image: string;
+  season: Season | 'all'; // Em qual estação pode ser plantada
+  description?: string;
 }
+
+export type Season = 'spring' | 'summer' | 'fall' | 'winter';
 
 export interface PlotState {
   id: string;
@@ -27,6 +31,10 @@ export interface GameState {
   coins: number;
   selectedCrop: Crop | null;
   selectedPlot: string | null;
+  currentSeason: Season;
+  dayCount: number; // Para controlar a passagem do tempo
+  playerName: string;
+  saveDate?: string; // Data do último save
 }
 
 export type GameAction = 
@@ -36,4 +44,8 @@ export type GameAction =
   | { type: 'HARVEST_CROP'; plotId: string; time: number }
   | { type: 'UPDATE_GROWTH'; time: number }
   | { type: 'BUY_CROP'; crop: Crop; quantity: number }
-  | { type: 'SELL_CROP'; crop: Crop; quantity: number };
+  | { type: 'SELL_CROP'; crop: Crop; quantity: number }
+  | { type: 'CHANGE_SEASON'; season: Season }
+  | { type: 'NEXT_DAY' }
+  | { type: 'LOAD_GAME'; state: GameState }
+  | { type: 'SET_PLAYER_NAME'; name: string };

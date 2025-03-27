@@ -1,39 +1,87 @@
 
-import { Crop, GameState, GameAction, PlotState, InventoryItem } from '../types/game';
+import { Crop, GameState, GameAction, PlotState, InventoryItem, Season } from '../types/game';
 
-// Initial crops
+// Initial crops with balanced economy and season information
 export const crops: Crop[] = [
   {
     id: 'tomato',
     name: 'Tomate',
     growthTime: 30, // 30 seconds for testing, would be longer in a real game
     price: 10,
-    yield: 25,
-    image: '🍅'
+    yield: 25, // Retorno de 250% do investimento
+    image: '🍅',
+    season: 'summer',
+    description: 'Cresce bem no calor do verão.'
   },
   {
     id: 'carrot',
     name: 'Cenoura',
     growthTime: 20,
     price: 5,
-    yield: 15,
-    image: '🥕'
+    yield: 11, // Retorno de 220% do investimento
+    image: '🥕',
+    season: 'spring',
+    description: 'Cresce rápido na primavera.'
   },
   {
     id: 'corn',
     name: 'Milho',
     growthTime: 40,
     price: 15,
-    yield: 40,
-    image: '🌽'
+    yield: 40, // Retorno de 267% do investimento
+    image: '🌽',
+    season: 'summer',
+    description: 'Ideal para o sol forte do verão.'
   },
   {
     id: 'strawberry',
     name: 'Morango',
     growthTime: 25,
     price: 20,
-    yield: 50,
-    image: '🍓'
+    yield: 50, // Retorno de 250% do investimento
+    image: '🍓',
+    season: 'spring',
+    description: 'Floresce na primavera com clima ameno.'
+  },
+  {
+    id: 'pumpkin',
+    name: 'Abóbora',
+    growthTime: 50,
+    price: 25,
+    yield: 70, // Retorno de 280% do investimento
+    image: '🎃',
+    season: 'fall',
+    description: 'Melhor cultivada no outono.'
+  },
+  {
+    id: 'wheat',
+    name: 'Trigo',
+    growthTime: 30,
+    price: 8,
+    yield: 18, // Retorno de 225% do investimento
+    image: '🌾',
+    season: 'fall',
+    description: 'Cresce bem com as chuvas de outono.'
+  },
+  {
+    id: 'potato',
+    name: 'Batata',
+    growthTime: 35,
+    price: 7,
+    yield: 16, // Retorno de 228% do investimento
+    image: '🥔',
+    season: 'all',
+    description: 'Cresce em qualquer estação, mas produz menos.'
+  },
+  {
+    id: 'cabbage',
+    name: 'Repolho',
+    growthTime: 45,
+    price: 12,
+    yield: 30, // Retorno de 250% do investimento
+    image: '🥬',
+    season: 'winter',
+    description: 'Resiste bem ao frio do inverno.'
   }
 ];
 
@@ -57,10 +105,13 @@ export const createInitialPlots = (rows: number, cols: number): PlotState[] => {
 // Initial game state
 export const initialGameState: GameState = {
   plots: createInitialPlots(4, 4),
-  inventory: crops.map(crop => ({ crop, quantity: 5 })), // Start with some seeds
+  inventory: crops.map(crop => ({ crop, quantity: 3 })), // Start with some seeds
   coins: 100,
   selectedCrop: null,
-  selectedPlot: null
+  selectedPlot: null,
+  currentSeason: 'spring', // Começa na primavera
+  dayCount: 1, // Começa no dia 1
+  playerName: 'Fazendeiro',
 };
 
 // Calculate growth stage based on time elapsed
@@ -81,6 +132,40 @@ export const getGrowthPercentage = (crop: Crop, plantedAt: number, currentTime: 
   const elapsedTime = (currentTime - plantedAt) / 1000; // to seconds
   const percentage = Math.min(100, Math.floor((elapsedTime / crop.growthTime) * 100));
   return percentage;
+};
+
+// Save game to localStorage
+export const saveGame = (state: GameState) => {
+  const gameState = {
+    ...state,
+    saveDate: new Date().toISOString()
+  };
+  localStorage.setItem('colheita-feliz-save', JSON.stringify(gameState));
+};
+
+// Load game from localStorage
+export const loadGame = (): GameState | null => {
+  const savedGame = localStorage.getItem('colheita-feliz-save');
+  if (savedGame) {
+    return JSON.parse(savedGame);
+  }
+  return null;
+};
+
+// Check if a crop can be planted in the current season
+export const canPlantInSeason = (crop: Crop, season: Season): boolean => {
+  return crop.season === 'all' || crop.season === season;
+};
+
+// Get season name in Portuguese
+export const getSeasonName = (season: Season): string => {
+  const seasons: Record<Season, string> = {
+    spring: 'Primavera',
+    summer: 'Verão',
+    fall: 'Outono',
+    winter: 'Inverno'
+  };
+  return seasons[season];
 };
 
 // Game reducer function
@@ -105,6 +190,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         return state;
       }
       
+      // Check if the crop can be planted in the current season
+      if (!canPlantInSeason(action.crop, state.currentSeason)) {
+        return state;
+      }
+      
       // Update inventory
       const updatedInventory = state.inventory.map(item => 
         item.crop.id === action.crop.id
@@ -124,12 +214,15 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           : plot
       );
       
-      return {
+      const newState = {
         ...state,
         plots: updatedPlots,
         inventory: updatedInventory,
         selectedPlot: null // Deselect plot after planting
       };
+      
+      saveGame(newState);
+      return newState;
     }
     
     case 'HARVEST_CROP': {
@@ -149,11 +242,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           : p
       );
       
-      return {
+      const newState = {
         ...state,
         plots: updatedPlots,
         coins: state.coins + earnings
       };
+      
+      saveGame(newState);
+      return newState;
     }
     
     case 'UPDATE_GROWTH': {
@@ -200,11 +296,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         ? updatedInventory 
         : [...updatedInventory, { crop: action.crop, quantity: action.quantity }];
       
-      return {
+      const newState = {
         ...state,
         inventory: finalInventory,
         coins: state.coins - totalCost
       };
+      
+      saveGame(newState);
+      return newState;
     }
     
     case 'SELL_CROP': {
@@ -224,14 +323,57 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           : item
       ).filter(item => item.quantity > 0); // Remove items with 0 quantity
       
-      return {
+      const newState = {
         ...state,
         inventory: updatedInventory,
         coins: state.coins + Math.floor(earnings)
       };
+      
+      saveGame(newState);
+      return newState;
+    }
+    
+    case 'CHANGE_SEASON': {
+      const newState = {
+        ...state,
+        currentSeason: action.season
+      };
+      
+      saveGame(newState);
+      return newState;
+    }
+    
+    case 'NEXT_DAY': {
+      const newState = {
+        ...state,
+        dayCount: state.dayCount + 1,
+        currentSeason: state.dayCount % 28 === 0 
+          ? ((seasons.indexOf(state.currentSeason) + 1) % 4) as Season 
+          : state.currentSeason
+      };
+      
+      saveGame(newState);
+      return newState;
+    }
+    
+    case 'LOAD_GAME': {
+      return action.state;
+    }
+    
+    case 'SET_PLAYER_NAME': {
+      const newState = {
+        ...state,
+        playerName: action.name
+      };
+      
+      saveGame(newState);
+      return newState;
     }
     
     default:
       return state;
   }
 };
+
+// Lista de estações em ordem
+export const seasons: Season[] = ['spring', 'summer', 'fall', 'winter'];
