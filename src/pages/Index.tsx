@@ -7,19 +7,11 @@ import { Slider } from '../components/ui/slider';
 import { Switch } from '../components/ui/switch';
 import { Button } from '../components/ui/button';
 import { Volume2, VolumeX } from 'lucide-react';
+import SoundManager from '../components/SoundManager';
 
 const Index = () => {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [soundVolume, setSoundVolume] = useState<number>(70);
-  
-  // Apply sound settings to all audio elements
-  useEffect(() => {
-    const audioElements = document.querySelectorAll('audio');
-    audioElements.forEach(audio => {
-      audio.volume = soundVolume / 100;
-      audio.muted = !soundEnabled;
-    });
-  }, [soundEnabled, soundVolume]);
 
   return (
     <motion.div 
@@ -28,6 +20,9 @@ const Index = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
     >
+      {/* Sound Manager */}
+      <SoundManager soundEnabled={soundEnabled} soundVolume={soundVolume} />
+      
       <GameBoard />
       
       <div className="fixed bottom-4 right-4 z-10">
@@ -72,10 +67,6 @@ const Index = () => {
       <footer className="text-center py-4 text-xs text-muted-foreground">
         <p>Colheita Feliz - Inspirado no jogo original da Mentez</p>
       </footer>
-      
-      {/* Audio elements */}
-      <audio id="plant-sound" src="/sounds/plant.mp3" preload="auto"></audio>
-      <audio id="harvest-sound" src="/sounds/harvest.mp3" preload="auto"></audio>
     </motion.div>
   );
 };

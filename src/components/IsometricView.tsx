@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, Sky, Clouds, Cloud } from '@react-three/drei';
@@ -360,166 +359,206 @@ const Environment = ({ dayProgress }: { dayProgress: number }) => {
   // 60-75: Sunset (5pm-8pm)
   // 75-100: Night (8pm-2am)
   
-  // Calculate time of day in hours (0-24) from dayProgress
-  const timeOfDay = (dayProgress / 100) * 24;
-  
-  // Determine current period based on dayProgress
-  const getPeriod = () => {
-    if (dayProgress < 15) return 'earlyMorning';
-    if (dayProgress < 25) return 'dawn';
-    if (dayProgress < 60) return 'day';
-    if (dayProgress < 75) return 'sunset';
-    return 'night';
-  };
-  
-  const period = getPeriod();
-  
-  // Calculate sun position based on time of day
+  // Calculate sun position with many more increments for smooth movement
   const sunPosition = useMemo(() => {
-    // Early morning
-    if (period === 'earlyMorning') {
-      const angle = Math.PI + (dayProgress / 15) * (Math.PI * 0.2);
-      return [
-        Math.sin(angle) * 100,
-        -5 + (dayProgress / 15) * 6, // Sun rising from below horizon
-        Math.cos(angle) * 100
-      ] as [number, number, number];
-    }
+    // Use an interpolation function for smooth transitions
+    const interpolate = (start: number, end: number, factor: number) => {
+      return start + (end - start) * factor;
+    };
     
-    // Dawn
-    if (period === 'dawn') {
+    // Map dayProgress to a continuous angle (0-360 degrees)
+    const fullCircle = Math.PI * 2;
+    let angle, height, distance = 100;
+    
+    // Early morning (0-15%)
+    if (dayProgress < 15) {
+      const progress = dayProgress / 15;
+      angle = Math.PI + (progress * (Math.PI * 0.2));
+      height = interpolate(-5, 1, progress);
+    }
+    // Dawn (15-25%)
+    else if (dayProgress < 25) {
       const progress = (dayProgress - 15) / 10;
-      const angle = Math.PI * 1.2 - progress * (Math.PI * 0.2);
-      return [
-        Math.sin(angle) * 100,
-        1 + progress * 30, // Sun continuing to rise
-        Math.cos(angle) * 100
-      ] as [number, number, number];
+      angle = Math.PI * 1.2 - progress * (Math.PI * 0.2);
+      height = interpolate(1, 30, progress);
     }
-    
-    // Day
-    if (period === 'day') {
+    // Day (25-60%)
+    else if (dayProgress < 60) {
       const progress = (dayProgress - 25) / 35;
-      const angle = Math.PI - progress * Math.PI;
-      return [
-        Math.sin(angle) * 100,
-        Math.max(30, 60 * Math.sin(progress * Math.PI)), // Sun reaches zenith at midday
-        Math.cos(angle) * 100
-      ] as [number, number, number];
+      angle = Math.PI - progress * Math.PI;
+      height = 30 + Math.sin(progress * Math.PI) * 30; // Smooth arc during the day
     }
-    
-    // Sunset
-    if (period === 'sunset') {
+    // Sunset (60-75%)
+    else if (dayProgress < 75) {
       const progress = (dayProgress - 60) / 15;
-      const angle = progress * (Math.PI * 0.2);
-      return [
-        Math.sin(angle) * 100,
-        30 * (1 - progress), // Sun going down
-        Math.cos(angle) * 100
-      ] as [number, number, number];
+      angle = progress * (Math.PI * 0.2);
+      height = interpolate(30, -5, progress);
+    }
+    // Night (75-100%)
+    else {
+      const progress = (dayProgress - 75) / 25;
+      angle = Math.PI * 0.2 + progress * (Math.PI * 0.8);
+      height = -5; // Below horizon
     }
     
-    // Night
-    const progress = (dayProgress - 75) / 25;
-    const angle = Math.PI * 0.2 + progress * (Math.PI * 0.8);
     return [
-      Math.sin(angle) * 100,
-      -5, // Sun below horizon
-      Math.cos(angle) * 100
+      Math.sin(angle) * distance,
+      height,
+      Math.cos(angle) * distance
     ] as [number, number, number];
-  }, [dayProgress, period]);
+  }, [dayProgress]);
   
-  // Calculate ambient light intensity based on time of day
-  let ambientIntensity;
-  if (period === 'earlyMorning') {
-    ambientIntensity = 0.05 + (dayProgress / 15) * 0.15; // Very dim light increasing
-  } else if (period === 'dawn') {
-    ambientIntensity = 0.2 + ((dayProgress - 15) / 10) * 0.3; // Light increasing
-  } else if (period === 'day') {
-    ambientIntensity = 0.5 + ((dayProgress - 25) / 35) * 0.3; // Full daylight
-  } else if (period === 'sunset') {
-    ambientIntensity = 0.5 - ((dayProgress - 60) / 15) * 0.3; // Light decreasing
-  } else { // night
-    ambientIntensity = 0.2 - ((dayProgress - 75) / 25) * 0.15; // Dim night light
-  }
+  // Calculate ambient light intensity based on time of day with smoother transitions
+  const ambientIntensity = useMemo(() => {
+    if (dayProgress < 15) {
+      // Early morning: very dim to dim light
+      return 0.05 + (dayProgress / 15) * 0.15;
+    } else if (dayProgress < 25) {
+      // Dawn: increasing light
+      return 0.2 + ((dayProgress - 15) / 10) * 0.3;
+    } else if (dayProgress < 60) {
+      // Day: full daylight with subtle variations
+      const progress = (dayProgress - 25) / 35;
+      return 0.5 + Math.sin(progress * Math.PI) * 0.3;
+    } else if (dayProgress < 75) {
+      // Sunset: decreasing light
+      return 0.5 - ((dayProgress - 60) / 15) * 0.3;
+    } else {
+      // Night: dim to very dim light
+      return 0.2 - ((dayProgress - 75) / 25) * 0.15;
+    }
+  }, [dayProgress]);
   
-  // Calculate directional light intensity
-  let directionalIntensity;
-  if (period === 'earlyMorning') {
-    directionalIntensity = 0;
-  } else if (period === 'dawn') {
-    directionalIntensity = ((dayProgress - 15) / 10) * 0.8;
-  } else if (period === 'day') {
-    directionalIntensity = 0.8 + ((dayProgress - 25) / 35) * 0.2;
-  } else if (period === 'sunset') {
-    directionalIntensity = 0.8 - ((dayProgress - 60) / 15) * 0.8;
-  } else { // night
-    directionalIntensity = 0;
-  }
+  // Calculate directional light intensity with smoother transitions
+  const directionalIntensity = useMemo(() => {
+    if (dayProgress < 15) {
+      // Early morning: gradually increasing from 0
+      return (dayProgress / 15) * 0.2;
+    } else if (dayProgress < 25) {
+      // Dawn: continuing to increase
+      return 0.2 + ((dayProgress - 15) / 10) * 0.6;
+    } else if (dayProgress < 60) {
+      // Day: full intensity with subtle variations
+      const progress = (dayProgress - 25) / 35;
+      return 0.8 + Math.sin(progress * Math.PI) * 0.2;
+    } else if (dayProgress < 75) {
+      // Sunset: decreasing
+      return 0.8 - ((dayProgress - 60) / 15) * 0.8;
+    } else {
+      // Night: no directional light
+      return 0;
+    }
+  }, [dayProgress]);
   
-  // Calculate sky color
+  // Calculate sky color with smoother transitions
   const skyColor = useMemo(() => {
-    if (period === 'earlyMorning') {
-      // Deep blue/purple
-      return new THREE.Color(0.05, 0.05, 0.15);
-    } else if (period === 'dawn') {
-      // Pink/orange sunrise
+    if (dayProgress < 15) {
+      // Deep blue/purple for early morning
+      const progress = dayProgress / 15;
+      return new THREE.Color(
+        0.05 + 0.05 * progress, 
+        0.05 + 0.05 * progress, 
+        0.15 + 0.05 * progress
+      );
+    } else if (dayProgress < 25) {
+      // Pink/orange sunrise with smooth transition
       const progress = (dayProgress - 15) / 10;
       return new THREE.Color(
-        0.7 * progress + 0.05,
-        0.3 * progress + 0.05,
-        0.5 * progress + 0.15
+        0.1 + 0.6 * progress, 
+        0.1 + 0.3 * progress, 
+        0.2 + 0.3 * progress
       );
-    } else if (period === 'day') {
-      // Blue sky
-      return new THREE.Color(0.53, 0.8, 0.92);
-    } else if (period === 'sunset') {
-      // Orange/red sunset
+    } else if (dayProgress < 60) {
+      // Blue sky during day
+      const progress = (dayProgress - 25) / 35;
+      // Subtle variations during the day
+      const blueVariation = 0.92 - Math.sin(progress * Math.PI) * 0.06;
+      return new THREE.Color(0.53, 0.8, blueVariation);
+    } else if (dayProgress < 75) {
+      // Orange/red sunset with smooth transition
       const progress = (dayProgress - 60) / 15;
       return new THREE.Color(
-        0.8 - 0.4 * progress,
-        0.6 - 0.5 * progress,
-        0.7 - 0.5 * progress
+        0.7 - 0.6 * progress, 
+        0.6 - 0.5 * progress, 
+        0.7 - 0.55 * progress
       );
-    } else { // night
-      // Dark blue night
-      return new THREE.Color(0.05, 0.05, 0.15);
+    } else {
+      // Dark blue night with subtle transition
+      const progress = (dayProgress - 75) / 25;
+      return new THREE.Color(
+        0.1 - 0.05 * progress, 
+        0.1 - 0.05 * progress, 
+        0.2 - 0.05 * progress
+      );
     }
-  }, [dayProgress, period]);
+  }, [dayProgress]);
   
-  // Calculate fog color and density
+  // Calculate fog color and density with smoother transitions
   const fogColor = useMemo(() => {
-    if (period === 'earlyMorning') {
-      return new THREE.Color(0.1, 0.1, 0.2);
-    } else if (period === 'dawn') {
+    if (dayProgress < 15) {
+      // Early morning fog
+      const progress = dayProgress / 15;
+      return new THREE.Color(
+        0.1 + 0.05 * progress, 
+        0.1 + 0.05 * progress, 
+        0.2 + 0.05 * progress
+      );
+    } else if (dayProgress < 25) {
+      // Dawn fog with smooth transition
       const progress = (dayProgress - 15) / 10;
       return new THREE.Color(
-        0.6 * progress + 0.1,
-        0.4 * progress + 0.1,
-        0.5 * progress + 0.2
+        0.15 + 0.45 * progress, 
+        0.15 + 0.25 * progress, 
+        0.25 + 0.25 * progress
       );
-    } else if (period === 'day') {
-      return new THREE.Color(0.75, 0.8, 0.85);
-    } else if (period === 'sunset') {
+    } else if (dayProgress < 60) {
+      // Day fog with subtle variations
+      const progress = (dayProgress - 25) / 35;
+      const blueVariation = 0.85 - Math.sin(progress * Math.PI) * 0.05;
+      return new THREE.Color(0.75, 0.8, blueVariation);
+    } else if (dayProgress < 75) {
+      // Sunset fog with smooth transition
       const progress = (dayProgress - 60) / 15;
       return new THREE.Color(
-        0.7 - 0.3 * progress,
-        0.5 - 0.3 * progress,
-        0.6 - 0.3 * progress
+        0.6 - 0.45 * progress, 
+        0.5 - 0.35 * progress, 
+        0.5 - 0.3 * progress
       );
-    } else { // night
-      return new THREE.Color(0.1, 0.1, 0.2);
+    } else {
+      // Night fog with subtle transition
+      const progress = (dayProgress - 75) / 25;
+      return new THREE.Color(
+        0.15 - 0.05 * progress, 
+        0.15 - 0.05 * progress, 
+        0.2 - 0.05 * progress
+      );
     }
-  }, [dayProgress, period]);
+  }, [dayProgress]);
   
-  // Adjust fog density based on time of day
-  const fogDensity = 0.01 + (
-    period === 'earlyMorning' ? 0.03 :
-    period === 'dawn' ? 0.02 - ((dayProgress - 15) / 10) * 0.01 :
-    period === 'day' ? 0.01 :
-    period === 'sunset' ? 0.01 + ((dayProgress - 60) / 15) * 0.01 :
-    0.03 // night
-  );
+  // Adjust fog density based on time of day with smoother transitions
+  const fogDensity = useMemo(() => {
+    if (dayProgress < 15) {
+      // Early morning: dense fog
+      const progress = dayProgress / 15;
+      return 0.04 - 0.01 * progress;
+    } else if (dayProgress < 25) {
+      // Dawn: fog clearing
+      const progress = (dayProgress - 15) / 10;
+      return 0.03 - 0.01 * progress;
+    } else if (dayProgress < 60) {
+      // Day: minimal fog with subtle variations
+      const progress = (dayProgress - 25) / 35;
+      return 0.01 + Math.sin(progress * Math.PI) * 0.005;
+    } else if (dayProgress < 75) {
+      // Sunset: fog increasing
+      const progress = (dayProgress - 60) / 15;
+      return 0.01 + 0.01 * progress;
+    } else {
+      // Night: dense fog gradually increasing
+      const progress = (dayProgress - 75) / 25;
+      return 0.02 + 0.02 * progress;
+    }
+  }, [dayProgress]);
   
   return (
     <>
@@ -543,7 +582,7 @@ const Environment = ({ dayProgress }: { dayProgress: number }) => {
   );
 };
 
-// Fence component
+// Fence component - updated to ensure it's on the ground
 const Fence = ({ width, height, offset }: { width: number, height: number, offset: [number, number, number] }) => {
   const [offsetX, offsetY, offsetZ] = offset;
   
@@ -551,7 +590,7 @@ const Fence = ({ width, height, offset }: { width: number, height: number, offse
   const posts = useMemo(() => {
     const fencePosts = [];
     
-    // Postes horizontais (eixo X)
+    // Posts along X axis (top and bottom of field)
     for (let x = 0; x <= width; x++) {
       fencePosts.push(
         <FencePost 
@@ -565,7 +604,7 @@ const Fence = ({ width, height, offset }: { width: number, height: number, offse
       );
     }
     
-    // Postes verticais (eixo Z)
+    // Posts along Z axis (left and right of field)
     for (let z = 0; z <= height; z++) {
       fencePosts.push(
         <FencePost 
@@ -587,17 +626,17 @@ const Fence = ({ width, height, offset }: { width: number, height: number, offse
   return <>{posts}</>;
 };
 
-// Fence post component
+// Fence post component - updated to ensure it's on the ground
 const FencePost = ({ position, rotation = [0, 0, 0] }: { position: [number, number, number], rotation?: [number, number, number] }) => {
   return (
     <group position={position} rotation={rotation}>
-      {/* Poste vertical */}
+      {/* Vertical post - lowered slightly to ensure it's firmly on the ground */}
       <mesh position={[0, 0.4, 0]} castShadow>
         <boxGeometry args={[0.1, 0.8, 0.1]} />
         <meshStandardMaterial color="#8B4513" />
       </mesh>
       
-      {/* Travessas horizontais */}
+      {/* Horizontal crossbars - adjusted positions */}
       <mesh position={[0, 0.25, 0]} castShadow>
         <boxGeometry args={[1, 0.05, 0.05]} />
         <meshStandardMaterial color="#A0522D" />
@@ -667,16 +706,20 @@ const PlotMesh = ({
     }
   });
   
-  // Direct planting handler
+  // Direct planting handler with improved sound playback
   const handlePlotClick = () => {
-    // Play sound when planting or harvesting
+    // Play sound when planting or harvesting using the window.playSound function
     if (plot.growthStage === 'ready') {
-      const audio = document.getElementById('harvest-sound') as HTMLAudioElement;
-      if (audio) audio.play().catch(e => console.log('Sound playback prevented:', e));
+      // Use the global playSound function from SoundManager
+      if ((window as any).playSound) {
+        (window as any).playSound('harvest-sound');
+      }
       onHarvest();
     } else if (plot.growthStage === 'empty') {
-      const audio = document.getElementById('plant-sound') as HTMLAudioElement;
-      if (audio) audio.play().catch(e => console.log('Sound playback prevented:', e));
+      // Use the global playSound function from SoundManager
+      if ((window as any).playSound) {
+        (window as any).playSound('plant-sound');
+      }
       onPlant();
     } else {
       onSelect();
@@ -778,101 +821,17 @@ const PlotMesh = ({
   );
 };
 
-const IsometricFarm = ({ 
-  plots, 
-  onSelectPlot, 
-  onPlantCrop, 
-  onHarvestCrop,
-  dayProgress = 50 // Default to midday
-}: IsometricViewProps & { dayProgress?: number }) => {
-  // Find farm dimensions
-  const maxRow = Math.max(...plots.map(p => p.position.y));
-  const maxCol = Math.max(...plots.map(p => p.position.x));
-  const farmSize: [number, number] = [maxCol + 1, maxRow + 1];
-  const groundSize: [number, number] = [maxCol + 120, maxRow + 120]; // Much larger ground
-  
-  // Get current time for growth calculations
-  const currentTime = Date.now();
-  
-  return (
-    <>
-      {/* Environment with day/night cycle */}
-      <Environment dayProgress={dayProgress} />
-      
-      {/* Ground base */}
-      <Ground size={groundSize} />
-      
-      {/* Grass tufts outside farm area */}
-      <GrassTufts farmSize={farmSize} avoidCenter={true} />
-      
-      {/* Distant mountains */}
-      <Mountains position={[0, 0, 0] as [number, number, number]} />
-      
-      {/* Distant houses */}
-      <DistantHouses />
-      
-      {/* Trees */}
-      <TreeDecorations size={groundSize} />
-      
-      {/* Plot grid */}
-      {plots.map((plot) => (
-        <PlotMesh 
-          key={plot.id} 
-          plot={plot}
-          currentTime={currentTime}
-          onSelect={() => onSelectPlot(plot.id)}
-          onPlant={() => onPlantCrop(plot.id)}
-          onHarvest={() => onHarvestCrop(plot.id)}
-          position={[
-            plot.position.x - maxCol/2, 
-            0, 
-            plot.position.y - maxRow/2
-          ] as [number, number, number]}
-        />
-      ))}
-      
-      {/* Fence around farm */}
-      <Fence 
-        width={maxCol + 1} 
-        height={maxRow + 1}
-        offset={[-(maxCol+1)/2, 0, -(maxRow+1)/2] as [number, number, number]}
-      />
-    </>
-  );
+export {
+  Tree,
+  Ground,
+  Mountains,
+  DistantHouses,
+  House,
+  GrassTufts,
+  GrassTuft,
+  TreeDecorations,
+  Environment,
+  Fence,
+  FencePost,
+  PlotMesh
 };
-
-const IsometricView: React.FC<IsometricViewProps> = ({ 
-  plots, 
-  onSelectPlot, 
-  onPlantCrop, 
-  onHarvestCrop,
-  dayProgress
-}) => {
-  return (
-    <div className="w-full h-[500px] rounded-lg overflow-hidden">
-      <Canvas 
-        shadows 
-        camera={{ position: [6, 7, 6], fov: 45 }}
-        gl={{ antialias: true, alpha: true }}
-      >
-        <OrbitControls 
-          enableZoom={true} 
-          enablePan={true}
-          minPolarAngle={Math.PI/6} 
-          maxPolarAngle={Math.PI/2.5}
-          minDistance={5}
-          maxDistance={20}
-        />
-        <IsometricFarm 
-          plots={plots} 
-          onSelectPlot={onSelectPlot} 
-          onPlantCrop={onPlantCrop} 
-          onHarvestCrop={onHarvestCrop}
-          dayProgress={dayProgress}
-        />
-      </Canvas>
-    </div>
-  );
-};
-
-export default IsometricView;
