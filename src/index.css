@@ -1,92 +1,78 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 44 36% 95%;
+    --foreground: 30 10% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 30 10% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 30 10% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 120 28% 40%;
+    --primary-foreground: 120 5% 97%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 35 40% 65%;
+    --secondary-foreground: 30 10% 15%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 30 5% 96%;
+    --muted-foreground: 30 5% 34%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 30 40% 65%;
+    --accent-foreground: 30 10% 15%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 30 10% 82%;
+    --input: 30 10% 82%;
+    --ring: 120 28% 40%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 30 10% 8%;
+    --foreground: 30 5% 93%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 30 10% 12%;
+    --card-foreground: 30 5% 93%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 30 10% 12%;
+    --popover-foreground: 30 5% 93%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 120 28% 40%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 35 30% 55%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 30 10% 20%;
+    --muted-foreground: 30 5% 64%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 30 30% 45%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 30 10% 25%;
+    --input: 30 10% 25%;
+    --ring: 120 28% 40%;
   }
 }
 
@@ -96,6 +82,64 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overflow-x-hidden;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  /* Glass morphism for panels */
+  .glass-panel {
+    @apply bg-white/80 dark:bg-black/40 backdrop-blur-md rounded-xl border border-white/20 dark:border-white/10 shadow-lg;
+  }
+  
+  /* Button styling */
+  .game-button {
+    @apply relative px-4 py-2 rounded-md transition-all duration-300 
+           bg-gradient-to-b from-primary/90 to-primary
+           text-primary-foreground font-medium shadow-md
+           hover:translate-y-[-2px] hover:shadow-lg active:translate-y-[1px] active:shadow-sm
+           disabled:opacity-50 disabled:pointer-events-none;
+  }
+  
+  /* Plot styling */
+  .plot {
+    @apply relative flex items-center justify-center 
+           rounded-md border-2 border-earth-600 shadow-inner
+           transition-all duration-300 overflow-hidden;
+  }
+  
+  .plot-soil {
+    @apply bg-gradient-to-b from-soil to-soil2;
+  }
+  
+  .plot-growing {
+    @apply cursor-wait;
+  }
+  
+  .plot-ready {
+    @apply cursor-pointer;
+  }
+  
+  /* Crop animations */
+  .crop-growing {
+    @apply animate-grow-up;
+  }
+  
+  .crop-ready {
+    @apply animate-bounce-light;
+  }
+  
+  .harvest-shine {
+    @apply absolute inset-0 bg-white/80 animate-fade-out;
+  }
+  
+  .harvest-coins {
+    @apply absolute text-xl font-bold text-yellow-500 animate-fade-out;
+  }
+  
+  /* Selection indicator */
+  .selection-indicator {
+    @apply absolute inset-0 border-4 border-primary rounded-md animate-pulse;
   }
 }
