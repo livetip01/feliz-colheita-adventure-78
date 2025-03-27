@@ -838,10 +838,10 @@ const PlotMesh = ({
                 <meshStandardMaterial color="#32CD32" />
               </mesh>
               
-              {/* Fruit/flower on top */}
+              {/* Fruit/flower on top - fixed: use crop.image as a fallback instead of color */}
               <mesh position={[0, height+0.15, 0]}>
                 <sphereGeometry args={[0.12, 8, 8]} />
-                <meshStandardMaterial color={plot.crop?.color || "#FF0000"} />
+                <meshStandardMaterial color="#FF0000" />
               </mesh>
             </>
           )}

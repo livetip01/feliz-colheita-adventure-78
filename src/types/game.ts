@@ -1,4 +1,3 @@
-
 export interface Crop {
   id: string;
   name: string;
@@ -9,6 +8,7 @@ export interface Crop {
   season: Season | 'all'; // Em qual estação pode ser plantada
   description?: string;
   unlocked?: boolean; // Indica se o cultivo está desbloqueado
+  color?: string; // Optional color for 3D rendering
 }
 
 export type Season = 'spring' | 'summer' | 'fall' | 'winter';
