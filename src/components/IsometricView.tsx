@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, Sky, Clouds, Cloud } from '@react-three/drei';
@@ -766,3 +767,130 @@ const PlotMesh = ({
                   <meshStandardMaterial color="#32CD32" />
                 </mesh>
               )}
+              
+              {growthPercentage >= 33 && growthPercentage < 66 && (
+                // Medium stage: more leaves, slightly larger
+                <>
+                  <mesh position={[0.1, height-0.1, 0]} rotation={[0, 0, Math.PI/6]}>
+                    <boxGeometry args={[0.25, 0.02, 0.12]} />
+                    <meshStandardMaterial color="#32CD32" />
+                  </mesh>
+                  <mesh position={[-0.1, height-0.15, 0]} rotation={[0, 0, -Math.PI/6]}>
+                    <boxGeometry args={[0.25, 0.02, 0.12]} />
+                    <meshStandardMaterial color="#32CD32" />
+                  </mesh>
+                </>
+              )}
+              
+              {growthPercentage >= 66 && (
+                // Almost mature: full set of leaves
+                <>
+                  <mesh position={[0.1, height-0.1, 0.1]} rotation={[0, 0, Math.PI/6]}>
+                    <boxGeometry args={[0.3, 0.03, 0.15]} />
+                    <meshStandardMaterial color="#32CD32" />
+                  </mesh>
+                  <mesh position={[-0.1, height-0.15, -0.05]} rotation={[0, 0, -Math.PI/6]}>
+                    <boxGeometry args={[0.3, 0.03, 0.15]} />
+                    <meshStandardMaterial color="#32CD32" />
+                  </mesh>
+                  <mesh position={[0, height-0.05, -0.1]} rotation={[Math.PI/6, 0, 0]}>
+                    <boxGeometry args={[0.2, 0.03, 0.25]} />
+                    <meshStandardMaterial color="#32CD32" />
+                  </mesh>
+                </>
+              )}
+            </>
+          )}
+          
+          {/* Fruit/edible part of the plant */}
+          {plot.growthStage === 'ready' && (
+            <Html position={[0, height + 0.2, 0]} style={{ pointerEvents: 'none', transform: 'translate(-50%, -50%)' }}>
+              <div className="text-2xl" style={{transform: 'scale(1.2)'}}>{plot.crop.image}</div>
+            </Html>
+          )}
+        </>
+      )}
+      
+      {/* Glow light on all plants, but with intensity based on readiness */}
+      <pointLight
+        position={[0, height + 0.5, 0]}
+        intensity={plot.growthStage === 'ready' ? 0.5 : 0.01}
+        distance={1.5}
+        color="#FFFF99"
+      />
+    </group>
+  );
+};
+
+// Main IsometricView component
+const IsometricView: React.FC<IsometricViewProps> = ({ 
+  plots, 
+  onSelectPlot, 
+  onPlantCrop, 
+  onHarvestCrop,
+  dayProgress = 0
+}) => {
+  const currentTime = useMemo(() => Date.now(), []);
+  const gridSize = Math.ceil(Math.sqrt(plots.length));
+  
+  // Calculate farm dimensions
+  const farmSize: [number, number] = [gridSize, gridSize];
+  
+  return (
+    <div className="h-[500px] w-full">
+      <Canvas shadows camera={{ position: [10, 10, 10], fov: 40 }}>
+        <Environment dayProgress={dayProgress} />
+        
+        {/* Controls with limits */}
+        <OrbitControls 
+          enablePan={true}
+          enableZoom={true}
+          enableRotate={true}
+          minDistance={5}
+          maxDistance={50}
+          minPolarAngle={0}
+          maxPolarAngle={Math.PI / 2.5}
+        />
+        
+        {/* Base terrain */}
+        <Ground size={farmSize} />
+        
+        {/* Mountains in the background */}
+        <Mountains />
+        
+        {/* Houses in the distance */}
+        <DistantHouses />
+        
+        {/* Random grass tufts */}
+        <GrassTufts farmSize={farmSize} />
+        
+        {/* Trees around the field */}
+        <TreeDecorations size={farmSize} />
+        
+        {/* Farm boundary fence */}
+        <Fence 
+          width={gridSize} 
+          height={gridSize} 
+          offset={[-gridSize/2, 0, -gridSize/2]} 
+        />
+        
+        {/* Plot grid */}
+        <group position={[-gridSize/2, 0, -gridSize/2]}>
+          {plots.map(plot => (
+            <PlotMesh
+              key={plot.id}
+              plot={plot}
+              position={[plot.position.x, 0, plot.position.y]}
+              onSelect={() => onSelectPlot(plot.id)}
+              onPlant={() => onPlantCrop(plot.id)}
+              onHarvest={() => onHarvestCrop(plot.id)}
+              currentTime={currentTime}
+            />
+          ))}
+        </group>
+      </Canvas>
+    </div>
+  );
+};
+
+export default IsometricView;
